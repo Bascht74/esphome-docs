@@ -37,8 +37,8 @@ modbus:
     uart_id: tcp_uart_1
 ```
 
-`modbus` sends RTU frames. The other end must be a serial bridge that forwards the bytes unchanged, not a
-Modbus TCP server.
+`modbus` sends RTU frames. With the default `protocol: raw`, the other end must be a serial bridge that forwards
+the bytes unchanged, not a Modbus TCP server. For a Modbus TCP server, set [`protocol: modbus`](#modbus-tcp).
 
 ## Server
 
@@ -50,7 +50,30 @@ tcp_uart:
     port: 8899
 ```
 
-The connecting client sends raw bytes, for example RTU frames for `modbus`, not Modbus TCP.
+With the default `protocol: raw`, the connecting client sends raw bytes, for example RTU frames for `modbus`,
+not Modbus TCP.
+
+## Modbus TCP
+
+```yaml
+# Example configuration entry
+tcp_uart:
+  - id: tcp_uart_1
+    host: 192.0.2.10
+    port: 502
+    protocol: modbus
+
+modbus:
+  - id: modbus_bus
+    uart_id: tcp_uart_1
+```
+
+`protocol: modbus` keeps RTU on this UART and speaks Modbus TCP on the socket. The hub writes one RTU frame.
+That PDU is sent as one Modbus TCP request, and the matching response is turned back into RTU. One request is
+outstanding. A response with another transaction id is dropped.
+
+This device is the Modbus master in both roles. `role: server` only decides who opens the TCP connection. The
+peer still answers the requests. It does not make this device a Modbus TCP slave.
 
 ## Configuration variables
 
@@ -61,6 +84,10 @@ The connecting client sends raw bytes, for example RTU frames for `modbus`, not 
   This option cannot be used when `role` is `server`.
 - **port** (**Required**, int): When `role` is `client`, the TCP port to connect to. When `role` is `server`,
   the TCP port to listen on.
+- **protocol** (*Optional*, string): `raw` or `modbus`. Defaults to `raw`. `raw` copies bytes unchanged.
+  `modbus` is described [above](#modbus-tcp).
+- **timeout** (*Optional*, [Time](/guides/configuration-types#time)): Close the connection when no byte has
+  been sent or received for this long. `0s` leaves it open. Defaults to `0s`.
 - **allowed_ips** (*Optional* when `role` is `server`, list): IPv4 addresses that may connect. A plain
   address is one host. A network is written in CIDR form, for example `192.0.2.0/24`. At most 255 entries. If
   the option is omitted, every address may connect. A rejected client is closed immediately and logged as a
