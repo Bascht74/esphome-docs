@@ -31,6 +31,14 @@ modbus:
   is connected to. No other component reads or writes this bus.
 - **response_timeout** (*Optional*, [Time](/guides/configuration-types#time)): How long to wait for a response
   before the next port may use the bus. Defaults to `500ms`.
+- **cache_time** (*Optional*, [Time](/guides/configuration-types#time)): How long one stored read is reused.
+  It does nothing while `cache_entries` is `0`. The clock starts when that response arrives and is not
+  restarted by a later read of the same registers. A new response from the bus starts it again. Defaults to
+  `500ms`. `0s` disables the cache.
+- **cache_entries** (*Optional*, int): How many reads are kept. The cache stays off until this is set.
+  Defaults to `0`. The limit is 32 on the ESP8266, 512 when PSRAM is enabled, and 64 otherwise. One entry is
+  one reply, at most 256 bytes. A longer reply is not kept. The same read is answered from the stored reply.
+  A different read replaces the least recently used entry when the table is full. A write clears the entries.
 - **ports** (**Required**, list): The masters. At least 1 and at most 4. See [Ports](#ports).
 
 ## Ports
@@ -43,8 +51,28 @@ Set `uart_id` or `id`, not both.
 - **id** ([ID](/guides/configuration-types#id)): Creates a UART. Use it as `uart_id` of a
   [Modbus](/components/modbus/) hub, not the server bus. The new UART copies baud rate, data bits, parity and
   stop bits from the server bus. Those settings are documented on the [UART bus](/components/uart/).
+- **cache** (*Optional*, boolean): Whether this port may be answered from a stored response. Defaults to
+  `false`. `false` always reads the bus. The reply is still stored, so a port with `true` can use it until
+  `cache_time` runs out.
 
 A port that sends again before it is served keeps the latest frame.
+
+## Examples
+
+A stored read. `inverter_bus` always uses the bus. `local_bus` may reuse a reply until `cache_time` runs out.
+
+```yaml
+# Example configuration entry
+modbus_gateway:
+  - uart_id: bms_bus
+    cache_time: 500ms
+    cache_entries: 64
+    ports:
+      - uart_id: inverter_bus
+        cache: false
+      - id: local_bus
+        cache: true
+```
 
 ## See Also
 
