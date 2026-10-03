@@ -1,84 +1,53 @@
 ---
-description: "Instructions for sharing one Modbus RTU bus between several masters in ESPHome."
+description: "Instructions for sharing one Modbus RTU bus between several masters."
 title: "Modbus Gateway"
 ---
 import APIRef from '@components/APIRef.astro';
 
 
-The `modbus_gateway` component lets several Modbus masters share one RTU bus. The bus has one server, for
-example a battery. Each master is a port. One request is on the bus at a time, and the response is written
-back only to the port that sent the request.
+The `modbus_gateway` component lets several Modbus masters share one RTU bus. One request is on the bus at a
+time, and the response goes back only to the port that sent it. The gateway does not poll. The masters do.
 
-A port is either a [UART bus](/components/uart/) a master is already connected to, or a UART this component
-creates. A [Modbus Controller](/components/modbus_controller/) uses that created UART, through a
-[Modbus](/components/modbus/) hub, and is then one more master on the same bus.
-
-The gateway does not poll. The masters do. It only forwards a finished RTU frame.
+Set up the [UART buses](/components/uart/) first. One bus is the server. Each other bus is a master. A port
+can instead be a UART this component creates. Use that id as the `uart_id` of a [Modbus](/components/modbus/)
+hub. A [Modbus Controller](/components/modbus_controller/) then uses the hub like any other bus.
 
 ```yaml
 # Example configuration entry
-uart:
-  - id: bms_bus
-    tx_pin: GPIO17
-    rx_pin: GPIO16
-    baud_rate: 9600
-  - id: inverter_a
-    tx_pin: GPIO4
-    rx_pin: GPIO5
-    baud_rate: 9600
-
 modbus_gateway:
-  - id: gate
-    uart_id: bms_bus
-    response_timeout: 500ms
-    cache_time: 200ms
+  - uart_id: bms_bus
     ports:
-      - uart_id: inverter_a
+      - uart_id: inverter_bus
       - id: local_bus
 
 modbus:
-  - id: local_hub
-    uart_id: local_bus
-    role: client
-
-modbus_controller:
-  - id: bms_view
-    modbus_id: local_hub
-    address: 1
-    update_interval: 5s
+  - uart_id: local_bus
 ```
 
 ## Configuration variables
 
-- **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID of the gateway.
+- **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID used for code generation.
 - **uart_id** (**Required**, [ID](/guides/configuration-types#id)): The [UART bus](/components/uart/) the server
-  is connected to. The gateway is the only component that reads and writes this bus.
+  is connected to. No other component reads or writes this bus.
 - **response_timeout** (*Optional*, [Time](/guides/configuration-types#time)): How long to wait for a response
-  before the bus is free for the next port. Defaults to `500ms`.
-- **cache_time** (*Optional*, [Time](/guides/configuration-types#time)): How long a read response may be reused.
-  A later read of the same address, function code and range is answered from that response and does not go
-  out on the bus. A write clears the cache. `0s` sends every read. Defaults to `0s`.
-- **ports** (**Required**, list): The masters. From 1 to 4 entries. See [Ports](#ports).
+  before the next port may use the bus. Defaults to `500ms`.
+- **cache_time** (*Optional*, [Time](/guides/configuration-types#time)): How long a read response is reused. The
+  same read is answered from that response and is not sent again. A write clears the stored response. `0s`
+  disables this. Defaults to `0s`.
+- **ports** (**Required**, list): The masters. At least 1 and at most 4. See [Ports](#ports).
 
 ## Ports
 
-Each entry is one master. Set `uart_id` or `id`, not both.
+Set `uart_id` or `id`, not both.
 
 - **uart_id** ([ID](/guides/configuration-types#id)): A [UART bus](/components/uart/) a master is connected to.
-  The gateway reads requests from it and writes the response back. Each UART can be used once, and it cannot
-  be the bus given in `uart_id` of the gateway.
-- **id** ([ID](/guides/configuration-types#id)): A UART created by the gateway. Use it as the `uart_id` of a
-  [Modbus](/components/modbus/) hub. That hub is the master.
+  Requests are read from it and the response is written back. A UART can be listed once, and it cannot be the
+  server bus.
+- **id** ([ID](/guides/configuration-types#id)): Creates a UART. Use it as `uart_id` of a
+  [Modbus](/components/modbus/) hub, not the server bus. The new UART copies baud rate, data bits, parity and
+  stop bits from the server bus. Those settings are documented on the [UART bus](/components/uart/).
 
-Baud rate, data bits, parity and stop bits stay on each UART. The created UART copies them from the bus, so
-the hub's frame timing matches the server.
-
-> [!NOTE]
-> Point the Modbus hub at the port `id`, not at the bus. The gateway has to be the only component on the bus
-> and on a port that uses `uart_id`.
-
-A frame with a bad CRC is dropped. A port that sends another request before it is served keeps the latest
-frame. Address `0` is forwarded and no response is waited for.
+A port that sends again before it is served keeps the latest frame.
 
 ## See Also
 
