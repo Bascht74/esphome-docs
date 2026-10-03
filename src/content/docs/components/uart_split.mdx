@@ -5,9 +5,8 @@ title: "UART Split"
 import APIRef from '@components/APIRef.astro';
 
 
-One hardware [UART bus](/components/uart/) can be read by only one component. `uart_split` is that reader.
-It copies every received byte to each output. Another component uses an output with `uart_id`, the same way
-as the hardware UART.
+The `uart_split` component reads one hardware [UART bus](/components/uart/) and copies every received byte to each
+of its outputs. Another component uses an output with `uart_id`, the same way as a hardware UART.
 
 ```yaml
 # Example configuration entry
@@ -37,35 +36,35 @@ uart_tcp:
     port: 6638
 ```
 
-`bus` reads and writes the pins. `tap` receives the same bytes and, because `rx_only` defaults to
-`direction: BOTH`, also receives what `bus` sends. It does not write back. Port 6638 is a copy of that one bus.
+`bus` reads and writes the pins. `tap` is receive-only, so it does not write back. With `direction` omitted, a
+receive-only output uses `BOTH` and also receives what the other outputs send. The `uart_tcp` server then publishes
+that copy.
 
 > [!NOTE]
 > Another component on the same UART is rejected during validation. `uart_split` has to be the only reader, because
 > two readers would each receive only part of the bytes. Use one of the outputs instead.
 
 > [!NOTE]
-> More than one output may write. Those bytes share the single transmit line and can mix. A receive-only
-> output drops anything written to it.
-
-> [!NOTE]
-> A full listener does not stall the bus. Bytes it cannot store are dropped. Reading from the pins pauses
-> only while an output that is allowed to write has no room left, so that output does not lose a byte.
+> More than one output may write. Those bytes share the single transmit line and can mix. A receive-only output
+> drops anything written to it. When its buffer is full, further bytes for that output are dropped. Reading from
+> the pins pauses only while an output that is allowed to write has no room left.
 
 ## Configuration variables
 
 - **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID used for code generation.
 - **uart_id** (**Required**, [ID](/guides/configuration-types#id)): The [UART bus](/components/uart/) to read.
   Baud rate, data bits, parity and stop bits are set there. They are not options of this component.
-- **outputs** (**Required**, list): One to eight outputs. Each output is itself a UART.
+- **outputs** (**Required**, list): One to eight outputs. Each output is itself a UART. See
+  [Output configuration](#output-configuration).
 
-Each entry of `outputs`:
+## Output configuration
 
-- **id** (**Required**, [ID](/guides/configuration-types#id)): The ID other components use as `uart_id`.
+- **id** (*Optional*, [ID](/guides/configuration-types#id)): An ID to assign to this output. Use it as `uart_id`
+  in another component.
 - **rx_only** (*Optional*, boolean): Drop bytes written to this output. Defaults to `false`.
-- **direction** (*Optional*, string): `RX` or `BOTH`. `RX` copies only the bytes from the pins. `BOTH` also
-  copies what the other outputs send into this output's receive buffer. When `rx_only` is set and `direction`
-  is omitted, the direction is `BOTH`. Otherwise it is `RX`.
+- **direction** (*Optional*, string): `RX` or `BOTH`. `RX` copies only the bytes from the pins. `BOTH` also copies
+  what the other outputs send into this output's receive buffer. When `rx_only` is `true` and `direction` is
+  omitted, the direction is `BOTH`. Otherwise it is `RX`.
 
 ## See Also
 
