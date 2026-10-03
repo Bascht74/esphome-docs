@@ -31,9 +31,6 @@ modbus:
   is connected to. No other component reads or writes this bus.
 - **response_timeout** (*Optional*, [Time](/guides/configuration-types#time)): How long to wait for a response
   before the next port may use the bus. Defaults to `500ms`.
-- **cache_time** (*Optional*, [Time](/guides/configuration-types#time)): How long a read response is reused. The
-  same read is answered from that response and is not sent again. A write clears the stored response. `0s`
-  disables this. Defaults to `0s`.
 - **ports** (**Required**, list): The masters. At least 1 and at most 4. See [Ports](#ports).
 
 ## Ports
