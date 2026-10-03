@@ -16,12 +16,9 @@ hub. A [Modbus Controller](/components/modbus_controller/) then uses the hub lik
 # Example configuration entry
 modbus_gateway:
   - uart_id: bms_bus
-    cache_time: 500ms
-    cache_entries: 64
     ports:
       - uart_id: inverter_bus
       - id: local_bus
-        cache: true
 
 modbus:
   - uart_id: local_bus
@@ -38,13 +35,10 @@ modbus:
   It does nothing while `cache_entries` is `0`. The clock starts when that response arrives and is not
   restarted by a later read of the same registers. A new response from the bus starts it again. Defaults to
   `500ms`. `0s` disables the cache.
-- **cache_entries** (*Optional*, int): How many reads are kept. The cache is off until this is set, and `0`
-  keeps none and allocates nothing. Defaults to `0`. A non-zero value allocates the table once, when the
-  first response arrives. The limit is 32 on the ESP8266, 512 when PSRAM is enabled, and 64 on every other
-  chip. One entry is the whole reply, at most 256 bytes (125 registers). A longer reply is not kept. The
-  same read is answered from that entry and moves to the front. A new read reuses an expired entry, or the
-  least recently used one when the table is full. A full table logs the drop at debug level. A write clears
-  the entries and keeps the buffers.
+- **cache_entries** (*Optional*, int): How many reads are kept. The cache stays off until this is set.
+  Defaults to `0`. The limit is 32 on the ESP8266, 512 when PSRAM is enabled, and 64 otherwise. One entry is
+  one reply, at most 256 bytes. A longer reply is not kept. The same read is answered from the stored reply.
+  A different read replaces the least recently used entry when the table is full. A write clears the entries.
 - **ports** (**Required**, list): The masters. At least 1 and at most 4. See [Ports](#ports).
 
 ## Ports
@@ -62,6 +56,23 @@ Set `uart_id` or `id`, not both.
   `cache_time` runs out.
 
 A port that sends again before it is served keeps the latest frame.
+
+## Examples
+
+A stored read. `inverter_bus` always uses the bus. `local_bus` may reuse a reply until `cache_time` runs out.
+
+```yaml
+# Example configuration entry
+modbus_gateway:
+  - uart_id: bms_bus
+    cache_time: 500ms
+    cache_entries: 64
+    ports:
+      - uart_id: inverter_bus
+        cache: false
+      - id: local_bus
+        cache: true
+```
 
 ## See Also
 
