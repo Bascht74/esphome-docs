@@ -1,75 +1,56 @@
 ---
-description: "Instructions for copying one UART bus to several outputs in ESPHome"
+description: "Instructions for copying one UART bus to several outputs in ESPHome."
 title: "UART Split"
 ---
 import APIRef from '@components/APIRef.astro';
 
 
-The `uart_split` component reads one hardware [UART bus](/components/uart/) and copies every received byte to each
-of its outputs. Another component uses an output with `uart_id`, the same way as a hardware UART.
+The `uart_split` component reads one [UART bus](/components/uart/) and copies every received byte to each of its
+outputs. Another component uses an output as its `uart_id`.
 
 ```yaml
 # Example configuration entry
-uart:
-  - id: uart_bus
-    tx_pin: GPIO17
-    rx_pin: GPIO16
-    baud_rate: 9600
-
 uart_split:
-  - id: split_bus
-    uart_id: uart_bus
+  - uart_id: uart_bus
     outputs:
       - id: bus
       - id: tap
         rx_only: true
-
-modbus:
-  - id: meter
-    uart_id: bus
-    role: server
-
-uart_tcp:
-  - id: sniff
-    uart_id: tap
-    role: server
-    port: 6638
 ```
 
-`bus` reads and writes the pins. `tap` is receive-only, so it does not write back. With `direction` omitted, a
-receive-only output uses `BOTH` and also receives what the other outputs send. The `uart_tcp` server then publishes
-that copy.
+`bus` reads and writes the pins. `tap` is receive-only. When `direction` is omitted, a receive-only output uses
+`BOTH`, so it also receives what the other outputs send. Point a [Modbus](/components/modbus/) hub at `bus` and
+a [UART TCP](/components/uart_tcp/) server at `tap` to publish that copy.
 
 > [!NOTE]
-> Another component on the same UART is rejected during validation. `uart_split` has to be the only reader, because
-> two readers would each receive only part of the bytes. Use one of the outputs instead.
+> Another component on the same UART is rejected. This component has to be the only reader. Use an output
+> instead.
 
 > [!NOTE]
-> More than one output may write. Those bytes share the single transmit line and can mix. A receive-only output
-> drops anything written to it. When its buffer is full, further bytes for that output are dropped. Reading from
-> the pins pauses only while an output that is allowed to write has no room left.
+> More than one output may write. Those bytes share one transmit line. Reading pauses while an output that
+> writes has no room left.
 
 ## Configuration variables
 
 - **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID used for code generation.
 - **uart_id** (**Required**, [ID](/guides/configuration-types#id)): The [UART bus](/components/uart/) to read.
-  Baud rate, data bits, parity and stop bits are set there. They are not options of this component.
+  Baud rate, data bits, parity and stop bits are set there.
 - **outputs** (**Required**, list): One to eight outputs. Each output is itself a UART. See
   [Output configuration](#output-configuration).
 
 ## Output configuration
 
 - **id** (*Optional*, [ID](/guides/configuration-types#id)): An ID to assign to this output. Use it as `uart_id`
-  in another component.
-- **rx_only** (*Optional*, boolean): Drop bytes written to this output. Defaults to `false`.
-- **direction** (*Optional*, string): `RX` or `BOTH`. `RX` copies only the bytes from the pins. `BOTH` also copies
-  what the other outputs send into this output's receive buffer. When `rx_only` is `true` and `direction` is
-  omitted, the direction is `BOTH`. Otherwise it is `RX`.
+  in another component. ESPHome assigns one when it is omitted.
+- **rx_only** (*Optional*, boolean): Drop bytes written to this output. Further bytes are dropped when the
+  buffer is full. Defaults to `false`.
+- **direction** (*Optional*, string): `RX` or `BOTH`. `RX` copies only the bytes from the pins. `BOTH` also
+  copies what the other outputs send. When `rx_only` is `true` and `direction` is omitted, the direction is
+  `BOTH`. Otherwise it is `RX`.
 
 ## See Also
 
 - [UART Bus](/components/uart/)
 - [UART TCP](/components/uart_tcp/)
-- [TCP UART](/components/tcp_uart/)
 - [Modbus](/components/modbus/)
 - <APIRef text="uart_split.h" path="uart_split/uart_split.h" />
