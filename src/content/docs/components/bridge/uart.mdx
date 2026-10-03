@@ -5,6 +5,8 @@ title: "UART Bridge"
 
 The `uart` platform of the [Bridge](/components/bridge/) component copies bytes unchanged, in both directions,
 between two [UART](/components/uart/) buses. Each bus keeps its own baud rate, data bits, parity and stop bits.
+Two serial devices that were wired to each other keep talking, with this device between them and one UART on
+each device.
 
 ```yaml
 # Example configuration entry
