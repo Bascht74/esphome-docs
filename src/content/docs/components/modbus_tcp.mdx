@@ -21,7 +21,7 @@ Set up a [TCP UART](/components/tcp_uart/) first. The hub's `uart_id` points her
 That PDU is sent as one Modbus TCP request, and the matching response is turned back into RTU. One request is
 outstanding. A response with another transaction id is dropped.
 
-This device is the Modbus master. `role` on the `tcp_uart` only decides who opens the TCP connection.
+This device is the Modbus client. `role` on the `tcp_uart` only decides who opens the TCP connection.
 
 ```yaml
 # Example configuration entry
@@ -39,7 +39,7 @@ The hub reads baud rate, data bits, parity and stop bits from the `tcp_uart`. Th
 ## On a hardware UART
 
 This entry owns the pins and opens the socket. [UART TCP](/components/uart_tcp/) is not in this path. Only one
-transaction is open. `send_wait_time` should be shorter than the timeout of the Modbus TCP master. It is
+transaction is open. `send_wait_time` should be shorter than the timeout of the Modbus TCP client. It is
 independent of `send_wait_time` on a [Modbus](/components/modbus/) hub.
 
 When `role` is `client`, an RTU frame from the UART is sent as a Modbus TCP request to `host`. The matching
@@ -53,7 +53,7 @@ modbus_tcp:
     port: 502
 ```
 
-When `role` is `server`, the TCP client is the master. Its request is written to the UART as RTU, and the reply
+When `role` is `server`, the TCP client is the Modbus client. Its request is written to the UART as RTU, and the reply
 is sent back as Modbus TCP. If the UART device does not answer within `send_wait_time`, the client receives
 exception `0x0B` (gateway target device failed to respond).
 
