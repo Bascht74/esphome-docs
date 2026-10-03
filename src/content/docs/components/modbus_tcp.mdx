@@ -48,17 +48,31 @@ frame timing.
 This entry owns the pins and opens the socket. [UART TCP](/components/uart_tcp/) is not in this path.
 Only one transaction is open.
 
-When `role` is `server`, the TCP client is the master. Its request is written to the UART as RTU, and the
-reply is sent back as Modbus TCP. If the UART device does not answer within `send_wait_time`, the client
-receives exception `0x0B` (gateway target device failed to respond).
+`send_wait_time` should be shorter than the timeout of the Modbus TCP master. Otherwise that master has
+already given up when the reply arrives. The value is independent of `send_wait_time` on a
+[`modbus`](/components/modbus/) hub.
 
 When `role` is `client`, an RTU frame from the UART is sent as a Modbus TCP request to `host`. The matching
 response is written back to the UART as RTU. If `host` does not answer within `send_wait_time`, the request
 is dropped and nothing is written to the UART.
 
-`send_wait_time` should be shorter than the timeout of the Modbus TCP master. Otherwise that master has
-already given up when the reply arrives. The value is independent of `send_wait_time` on a
-[`modbus`](/components/modbus/) hub.
+```yaml
+# Example configuration entry
+uart:
+  - id: meter_pins
+    tx_pin: GPIO17
+    rx_pin: GPIO16
+    baud_rate: 9600
+
+modbus_tcp:
+  - uart_id: meter_pins
+    host: 192.0.2.10
+    port: 502
+```
+
+When `role` is `server`, the TCP client is the master. Its request is written to the UART as RTU, and the
+reply is sent back as Modbus TCP. If the UART device does not answer within `send_wait_time`, the client
+receives exception `0x0B` (gateway target device failed to respond).
 
 ```yaml
 # Example configuration entry
