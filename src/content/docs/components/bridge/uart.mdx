@@ -1,0 +1,50 @@
+---
+description: "Instructions for setting up a bridge between two UART buses in ESPHome"
+title: "UART Bridge"
+---
+
+The UART Bridge (the `uart` platform of the [Bridge](/components/bridge/) component) copies bytes unchanged,
+in both directions, between two [UART](/components/uart/) buses. Each bus keeps its own baud rate, data bits,
+parity and stop bits. The device has to stay running: without it the two buses are not connected.
+
+```yaml
+# Example configuration entry
+uart:
+  - id: device_a
+    tx_pin: GPIO17
+    rx_pin: GPIO16
+    baud_rate: 9600
+  - id: device_b
+    tx_pin: GPIO4
+    rx_pin: GPIO5
+    baud_rate: 9600
+
+bridge:
+  - platform: uart
+    uart_id: device_a
+    peer_id: device_b
+```
+
+## Configuration Variables
+
+- **uart_id** (**Required**, [ID](/guides/configuration-types#id)): One UART bus.
+- **peer_id** (**Required**, [ID](/guides/configuration-types#id)): The other UART bus.
+- **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID of this bridge.
+
+> [!NOTE]
+> A bridge is the only reader of each of its UARTs. Another component, or a second bridge, on either bus is
+> rejected, because each reader would see only part of the bytes. The two ends cannot be the same UART.
+
+> [!NOTE]
+> `debug` on a bridged UART logs the bytes this bridge reads and writes. `dummy_receiver: true` is rejected:
+> that option reads the bus itself and would drop the bytes the bridge should forward.
+
+On drivers that do not report how much room the transmit buffer has, the bridge writes at most one loop pass of
+bytes (about 16 ms at 10 bits per byte). A full buffer is left for the next pass, so a busy bus does not stall
+the device.
+
+## See Also
+
+- [Bridge](/components/bridge/)
+- [UART](/components/uart/)
+- [UART TCP](/components/uart_tcp/)
