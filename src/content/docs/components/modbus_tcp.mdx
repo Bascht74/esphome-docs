@@ -1,5 +1,5 @@
 ---
-description: "Instructions for speaking Modbus TCP on a TCP UART or a hardware UART in ESPHome"
+description: "Instructions for speaking Modbus TCP on a TCP UART or a hardware UART in ESPHome."
 title: "Modbus TCP"
 ---
 import APIRef from '@components/APIRef.astro';
@@ -11,88 +11,63 @@ This component turns Modbus RTU into Modbus TCP, and back. [TCP UART](/component
 Set `tcp_uart_id` or `uart_id`, not both.
 
 > [!WARNING]
-> A hardware entry opens plain TCP with no encryption and no authentication. `allowed_ips` filters by
-> address but does not authenticate the peer. If it is omitted, any host that can reach the port is
-> accepted. Only use the server on a trusted network.
+> A hardware entry opens plain TCP with no encryption and no authentication. `allowed_ips` filters by address
+> but does not authenticate the peer. If it is omitted, any host that can reach the port is accepted. Only use
+> the server on a trusted network.
 
 ## In front of a TCP UART
 
-`tcp_uart` opens the socket. The hub's `uart_id` points here. The hub writes one RTU frame. That PDU is
-sent as one Modbus TCP request, and the matching response is turned back into RTU. One request is
+Set up a [TCP UART](/components/tcp_uart/) first. The hub's `uart_id` points here. The hub writes one RTU frame.
+That PDU is sent as one Modbus TCP request, and the matching response is turned back into RTU. One request is
 outstanding. A response with another transaction id is dropped.
 
-This device is the Modbus master. `role` on the `tcp_uart` only decides who opens the TCP connection. The
-peer still answers the requests. It does not make this device a Modbus TCP slave.
+This device is the Modbus master. `role` on the `tcp_uart` only decides who opens the TCP connection.
 
 ```yaml
 # Example configuration entry
-tcp_uart:
-  - id: shelly_link
-    host: 192.0.2.10
-    port: 502
-
 modbus_tcp:
   - id: shelly_uart
     tcp_uart_id: shelly_link
 
 modbus:
-  - id: modbus_bus
-    uart_id: shelly_uart
+  - uart_id: shelly_uart
 ```
 
-Baud rate, data bits, parity and stop bits are taken from the `tcp_uart`. The hub reads them for its
-frame timing.
+The hub reads baud rate, data bits, parity and stop bits from the `tcp_uart`. Those settings are documented on
+[TCP UART](/components/tcp_uart/).
 
 ## On a hardware UART
 
-This entry owns the pins and opens the socket. [UART TCP](/components/uart_tcp/) is not in this path.
-Only one transaction is open.
-
-`send_wait_time` should be shorter than the timeout of the Modbus TCP master. Otherwise that master has
-already given up when the reply arrives. The value is independent of `send_wait_time` on a
-[`modbus`](/components/modbus/) hub.
+This entry owns the pins and opens the socket. [UART TCP](/components/uart_tcp/) is not in this path. Only one
+transaction is open. `send_wait_time` should be shorter than the timeout of the Modbus TCP master. It is
+independent of `send_wait_time` on a [Modbus](/components/modbus/) hub.
 
 When `role` is `client`, an RTU frame from the UART is sent as a Modbus TCP request to `host`. The matching
-response is written back to the UART as RTU. If `host` does not answer within `send_wait_time`, the request
-is dropped and nothing is written to the UART.
+response is written back as RTU. If `host` does not answer within `send_wait_time`, the request is dropped.
 
 ```yaml
 # Example configuration entry
-uart:
-  - id: meter_pins
-    tx_pin: GPIO17
-    rx_pin: GPIO16
-    baud_rate: 9600
-
 modbus_tcp:
   - uart_id: meter_pins
     host: 192.0.2.10
     port: 502
 ```
 
-When `role` is `server`, the TCP client is the master. Its request is written to the UART as RTU, and the
-reply is sent back as Modbus TCP. If the UART device does not answer within `send_wait_time`, the client
-receives exception `0x0B` (gateway target device failed to respond).
+When `role` is `server`, the TCP client is the master. Its request is written to the UART as RTU, and the reply
+is sent back as Modbus TCP. If the UART device does not answer within `send_wait_time`, the client receives
+exception `0x0B` (gateway target device failed to respond).
 
 ```yaml
 # Example configuration entry
-uart:
-  - id: meter_pins
-    tx_pin: GPIO17
-    rx_pin: GPIO16
-    baud_rate: 9600
-
 modbus_tcp:
   - uart_id: meter_pins
     role: server
     port: 502
-    allowed_ips:
-      - 192.0.2.10
-    send_wait_time: 2s
 ```
 
 > [!NOTE]
-> Baud rate, data bits, parity and stop bits are set on the UART bus. They are not options of this component.
+> Baud rate, data bits, parity and stop bits are set on the [UART bus](/components/uart/). They are not options
+> of this component.
 
 ## Configuration variables
 
@@ -110,15 +85,13 @@ modbus_tcp:
 - **send_wait_time** (*Optional* with `uart_id`, [Time](/guides/configuration-types#time)): How long to wait
   for the other side of one transaction. Defaults to `2s`. Not used with `tcp_uart_id`.
 - **timeout** (*Optional* with `uart_id`, [Time](/guides/configuration-types#time)): Close the connection when
-  no byte has been sent or received for this long. `0s` leaves it open. Defaults to `0s`. A `tcp_uart` has
-  its own `timeout`.
-- **allowed_ips** (*Optional* when `role` is `server`, list): IPv4 addresses that may connect. A plain
-  address is one host. A network is written in CIDR form, for example `192.0.2.0/24`. At most 255 entries. If
-  the option is omitted, every address may connect. A rejected client is closed immediately and logged as a
-  warning at most once every 5 seconds; an IPv6 client is rejected unless it carries an IPv4 mapped address, as
-  on a dual stack network. This option cannot be used when `role` is `client`.
-- **reconnect_interval** (*Optional* with `uart_id`, [Time](/guides/configuration-types#time)): The time to
-  wait before trying again after a failure. Defaults to `5s`.
+  no byte has been sent or received for this long. `0s` leaves it open. Defaults to `0s`. A `tcp_uart` has its
+  own `timeout`.
+- **allowed_ips** (*Optional* when `role` is `server`, list): IPv4 addresses that may connect. A plain address
+  is one host. A network is written in CIDR form, for example `192.0.2.0/24`. At most 255 entries. If the
+  option is omitted, every address may connect. This option cannot be used when `role` is `client`.
+- **reconnect_interval** (*Optional* with `uart_id`, [Time](/guides/configuration-types#time)): The time to wait
+  before trying again after a failure. Defaults to `5s`.
 - **connected** (*Optional* with `uart_id`): A binary sensor that reports whether the TCP connection is
   established. All options from [Binary Sensor](/components/binary_sensor#config-binary_sensor) are supported.
   On a `tcp_uart`, the sensor belongs to that component.
