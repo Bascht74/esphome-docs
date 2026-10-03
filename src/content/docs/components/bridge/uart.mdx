@@ -6,7 +6,8 @@ title: "UART Bridge"
 The `uart` platform of the [Bridge](/components/bridge/) component copies bytes unchanged, in both directions,
 between two [UART](/components/uart/) buses. Each bus keeps its own baud rate, data bits, parity and stop bits.
 Two serial devices that were wired to each other keep talking, with this device between them and one UART on
-each device.
+each device. To sniff those bytes, for example over TCP, put a UART split on one bus, connect this bridge to
+one of its outputs, and publish a receive-only output with [UART TCP](/components/uart_tcp/).
 
 ```yaml
 # Example configuration entry
