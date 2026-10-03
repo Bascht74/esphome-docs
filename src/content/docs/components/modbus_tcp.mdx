@@ -36,12 +36,12 @@ When `role` is `server`, a request from the TCP peer is turned into one RTU fram
 ```yaml
 # Example configuration entry
 tcp_uart:
-  - id: listen
+  - id: inbound
     port: 502
 
 modbus_tcp:
   - id: bus
-    tcp_uart_id: listen
+    tcp_uart_id: inbound
     role: server
 
 modbus:
