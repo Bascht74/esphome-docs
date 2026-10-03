@@ -40,9 +40,9 @@ uart_tcp:
 `bus` reads and writes the pins. `tap` receives the same bytes and, because `rx_only` defaults to
 `direction: BOTH`, also receives what `bus` sends. It does not write back. Port 6638 is a copy of that one bus.
 
-> [!WARNING]
-> Do not point another component at `uart_bus`. The first reader takes the byte, and the second sees a gap.
-> `uart_split` has to be the only component with that `uart_id`.
+> [!NOTE]
+> Another component on the same UART is rejected during validation. `uart_split` has to be the only reader, because
+> two readers would each receive only part of the bytes. Use one of the outputs instead.
 
 > [!NOTE]
 > More than one output may write. Those bytes share the single transmit line and can mix. A receive-only
