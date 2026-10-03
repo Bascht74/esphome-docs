@@ -17,11 +17,9 @@ Set `tcp_uart_id` or `uart_id`, not both.
 
 ## In front of a TCP UART
 
-Set up a [TCP UART](/components/tcp_uart/) first. The hub's `uart_id` points here. The hub writes one RTU frame.
-That PDU is sent as one Modbus TCP request, and the matching response is turned back into RTU. One request is
-outstanding. A response with another transaction id is dropped.
+Set up a [TCP UART](/components/tcp_uart/) first. The hub's `uart_id` points here. `role` on this component is who sends the Modbus request. It defaults to `client`. `role` on the `tcp_uart` only decides who opens the TCP connection. The hub must use the same role.
 
-This device is the Modbus client. `role` on the `tcp_uart` only decides who opens the TCP connection.
+When `role` is `client`, the hub writes one RTU frame. That PDU is sent as one Modbus TCP request, and the matching response is turned back into RTU. One request is outstanding. A response with another transaction id is dropped.
 
 ```yaml
 # Example configuration entry
@@ -31,6 +29,24 @@ modbus_tcp:
 
 modbus:
   - uart_id: shelly_uart
+```
+
+When `role` is `server`, a request from the TCP peer is turned into one RTU frame. The hub's reply is sent back with that request's transaction id.
+
+```yaml
+# Example configuration entry
+tcp_uart:
+  - id: listen
+    port: 502
+
+modbus_tcp:
+  - id: bus
+    tcp_uart_id: listen
+    role: server
+
+modbus:
+  - uart_id: bus
+    role: server
 ```
 
 The hub reads baud rate, data bits, parity and stop bits from the `tcp_uart`. Those settings are documented on
@@ -77,8 +93,9 @@ modbus_tcp:
   [TCP UART](/components/tcp_uart/). Do not set `uart_id` as well.
 - **uart_id** (**Required** for the second shape, [ID](/guides/configuration-types#id)): The hardware
   [UART bus](/components/uart/). Do not set `tcp_uart_id` as well.
-- **role** (*Optional* with `uart_id`, string): `client` or `server`. Defaults to `client`. Not used with
-  `tcp_uart_id`.
+- **role** (*Optional*, string): `client` or `server`. Defaults to `client`. With `tcp_uart_id`, this is who sends
+  the Modbus request, and the hub must use the same role. Who opens the socket stays on the TCP UART. With
+  `uart_id`, `server` listens and the TCP peer sends the requests.
 - **host** (**Required** when `role` is `client`, string): The host to connect to. An IP address or a hostname.
   This option cannot be used when `role` is `server`, or with `tcp_uart_id`.
 - **port** (**Required** with `uart_id`, int): The TCP port to connect to, or to listen on.
