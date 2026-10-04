@@ -65,7 +65,8 @@ on_...:
 - **send_wait_time** (*Optional*, [Time](/guides/configuration-types#time)): Time in milliseconds before the next ModBUS command is sent when an answer from a previous command has not yet started (i.e. when to timeout and assume no response is coming). Defaults to 2000 ms.
   Set this value to the maximum time required for the slowest device on the bus to begin responding (time to first byte).
   If a device starts responding within this time, the next command will be queued and sent after the response is finished, no matter how long the response.
-  This option is only valid when the `role` is `client`.
+  This option is only valid when the `role` is `client`. A forward has its own `send_wait_time`, see
+  [Forwarding Options](#forwarding-options).
 
 - **turnaround_time** (*Optional*, [Time](/guides/configuration-types#time)): Time in milliseconds before the next ModBUS command is sent after last response is received. This interval allows other devices on the bus time to process messages. Defaults to 600 ms.
   This value is ideally set to the maximum time required for the slowest device on the bus to process a message and be ready to process another. Note that all devices will receive all messages and will require time to process them even if they don't need to reply.
@@ -127,8 +128,9 @@ little left to reclaim and no room to raise it.
 ## Forwarding
 
 With `peer_id`, the hub forwards one request at a time from a client on `uart_id` to a server on `peer_id`, and the
-reply back. Each side is Modbus RTU or Modbus TCP, set by `protocol` and `peer_protocol`, which are both required
-with `peer_id`. The hub does not answer requests itself, and no device can register on it.
+reply back. Each side is Modbus RTU or Modbus TCP, set by `protocol` and `peer_protocol`, which are both required with
+`peer_id`. Apart from the timeout reply described below, the hub does not answer requests itself, and no device can
+register on it.
 
 In this example a Modbus TCP client on the network reaches the devices on the serial bus `uart_bus`. `tcp_uart_1`
 is a [TCP UART](/components/tcp_uart/) with `role: server`.
@@ -144,15 +146,19 @@ modbus:
 
 Requests are taken only from `uart_id`. Whatever the server sends while no request is open is dropped. A reply must
 carry the function code of the request; on Modbus RTU it must also come from the addressed server, and on Modbus TCP it
-must carry the transaction identifier of the request and keeps the unit identifier of the request. While a request is
-open, further requests from a Modbus TCP client wait and are answered in order. A new request from a Modbus RTU client
-means it gave up on the open one: the hub waits for that reply or for `send_wait_time`, drops it, and then sends the new
-request. A write to address `0` is forwarded as a broadcast and not answered. A read to address `0` is dropped, because
-no server answers a broadcast.
+must carry the transaction identifier of the request and keeps the unit identifier of the request. Error replies of the
+server are passed on as well. While a request is open, further requests from a Modbus TCP client wait and are answered
+in order. A new request from a Modbus RTU client means it gave up on the open one: the hub waits for that reply or for
+`send_wait_time`, drops it, and then sends the new request. A write to address `0` is forwarded as a broadcast and not
+answered. A read to address `0` is dropped, because no server answers a broadcast. With a Modbus RTU server on
+`peer_id`, a Modbus TCP client must send the address of the server as unit identifier: `0` is a broadcast to every
+server, and `255` reaches no server and ends in exception `0x0B`.
 
 If the server does not answer within `send_wait_time`, a Modbus TCP client receives exception code `0x0B` (gateway
-target device failed to respond) and a Modbus RTU client receives nothing. On a Modbus RTU server bus the hub then
-stays silent for one frame time, so a late reply is not taken for the next request.
+target device failed to respond) and a Modbus RTU client receives nothing. On a Modbus RTU server bus the hub then stays
+silent for the time of one frame of maximum length, about 270 ms at 9600 baud, so a reply that is only a little late is
+dropped. A reply that comes later still can be taken as the reply to the next request, so set `send_wait_time` above the
+response time of the slowest server.
 
 The two UARTs of a forward cannot be used by another `modbus` hub or another component.
 
@@ -163,13 +169,17 @@ The two UARTs of a forward cannot be used by another `modbus` hub or another com
 
 ### Forwarding Options
 
+A forward takes `id`, `uart_id` and the options below. Its `send_wait_time` and `turnaround_time` replace the hub
+options of the same name and have their own meaning and defaults.
+
 - **peer_id** (*Optional*, [ID](/guides/configuration-types#id)): The [UART](/components/uart/) of the server side.
   Setting it makes the hub a forward. It must differ from `uart_id`. `role` cannot be set together with `peer_id`.
 - **protocol** (**Required** when `peer_id` is set, string): The framing on `uart_id`, `modbus_rtu` or `modbus_tcp`.
 - **peer_protocol** (**Required** when `peer_id` is set, string): The framing on `peer_id`, `modbus_rtu` or
   `modbus_tcp`. This option cannot be used without `peer_id`.
 - **send_wait_time** (*Optional*, [Time](/guides/configuration-types#time)): How long to wait for the server's
-  reply. Set it below the client's own timeout. Defaults to `2000ms`.
+  whole reply, counted from the end of the request. Set it above the response time of the slowest server and below
+  the client's own timeout. Defaults to `2000ms`.
 - **turnaround_time** (*Optional*, [Time](/guides/configuration-types#time)): The silence on a Modbus RTU server bus
   after a broadcast, before the next request. This option cannot be used when `peer_protocol` is `modbus_tcp`.
   Defaults to `200ms`.
