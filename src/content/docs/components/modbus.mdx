@@ -179,10 +179,10 @@ options of the same name and have their own meaning and defaults.
   `modbus_tcp`. This option cannot be used without `peer_id`.
 - **send_wait_time** (*Optional*, [Time](/guides/configuration-types#time)): How long to wait for the server's
   reply to start. A reply that has started is received to its end. Set it above the response time of the slowest
-  server and below the client's own timeout. Defaults to `2000ms`.
+  server and below the client's own timeout. At most `65535ms`. Defaults to `2000ms`.
 - **turnaround_time** (*Optional*, [Time](/guides/configuration-types#time)): The silence on a Modbus RTU server bus
   after a broadcast, before the next request. This option cannot be used when `peer_protocol` is `modbus_tcp`.
-  Defaults to `200ms`.
+  At most `65535ms`. Defaults to `200ms`.
 - **flow_control_pin** (*Optional*, [Pin](/guides/configuration-types#pin)): The RS485 driver enable pin for
   `uart_id`. This option cannot be used when `protocol` is `modbus_tcp`.
 - **peer_flow_control_pin** (*Optional*, [Pin](/guides/configuration-types#pin)): The RS485 driver enable pin for
