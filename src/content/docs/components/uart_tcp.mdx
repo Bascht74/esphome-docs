@@ -24,8 +24,8 @@ connection is closed.
 > [!NOTE]
 > Baud rate, data bits, parity and stop bits are set on the UART bus. They are not options of this component.
 
-This is not Modbus TCP. The bytes on the socket are the UART bytes. To speak Modbus TCP on a socket this
-device opens, use [Modbus TCP](/components/modbus_tcp/) with `uart_id`.
+This is not Modbus TCP. The bytes on the socket are the UART bytes. To speak Modbus TCP, put
+[Modbus TCP](/components/modbus_tcp/) in front of a [TCP UART](/components/tcp_uart/) and point the hub at that id.
 
 The examples assume a [UART bus](/components/uart/) with the id `uart_bus` is configured.
 
