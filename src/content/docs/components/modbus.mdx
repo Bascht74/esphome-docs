@@ -84,7 +84,8 @@ on_...:
 
 ## Modbus TCP
 
-With `protocol: modbus_tcp` the hub speaks Modbus TCP on its UART, usually a [TCP UART](/components/tcp_uart/).
+With `protocol: modbus_tcp` the hub speaks Modbus TCP on its UART, usually a [TCP UART](/components/tcp_uart/) on
+port `502`, the standard Modbus TCP port.
 The TCP UART opens or accepts the connection; the hub adds and removes the MBAP header. A device's `address` is
 sent as the unit identifier.
 
