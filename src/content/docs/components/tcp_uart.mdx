@@ -37,8 +37,8 @@ modbus:
     uart_id: tcp_uart_1
 ```
 
-`modbus` sends RTU frames. The other end must be a serial bridge that forwards the bytes unchanged, not a
-Modbus TCP server.
+By default `modbus` sends Modbus RTU, so the other end must be a serial bridge that forwards the bytes unchanged.
+For a Modbus TCP server, set `protocol: modbus_tcp` on the [Modbus](/components/modbus/) hub.
 
 ## Server
 
@@ -50,7 +50,8 @@ tcp_uart:
     port: 8899
 ```
 
-The connecting client sends raw bytes, for example RTU frames for `modbus`, not Modbus TCP.
+The connecting client sends raw bytes, for example RTU frames for `modbus`. For a Modbus TCP client, set
+`protocol: modbus_tcp` on the [Modbus](/components/modbus/) hub.
 
 ## Configuration variables
 
@@ -67,7 +68,8 @@ The connecting client sends raw bytes, for example RTU frames for `modbus`, not 
   warning at most once every 5 seconds; an IPv6 client is rejected unless it carries an IPv4 mapped address, as
   on a dual stack network. This option cannot be used when `role` is `client`.
 - **baud_rate** (*Optional*, int): The baud rate reported to consuming components. The socket itself has no clock;
-  components such as `modbus` read this value for their frame timing. Defaults to `9600`.
+  components such as `modbus` read this value for their RTU frame timing. A hub with `protocol: modbus_tcp` does
+  not use it. Defaults to `9600`.
 - **data_bits** (*Optional*, int): The number of data bits reported to consuming components. Defaults to `8`.
 - **parity** (*Optional*): The parity reported to consuming components. One of `NONE`, `EVEN`, `ODD`. Defaults to
   `NONE`.

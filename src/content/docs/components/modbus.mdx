@@ -9,7 +9,10 @@ import APIRef from '@components/APIRef.astro';
 <span id="modbus"></span>
 
 The Modbus protocol is used by many consumer and industrial devices for communication.
-This component allows components in ESPHome to communicate to those devices via RTU protocol. You can access the coils, discrete inputs, holding registers and input registers from your devices as sensors, switches, selects, numbers or various other ESPHome components and present them to your favorite Home Automation system. You can even write them as binary or float outputs from ESPHome.
+This component allows components in ESPHome to communicate with those devices over Modbus RTU or Modbus TCP. You
+can access the coils, discrete inputs, holding registers and input registers from your devices as sensors, switches,
+selects, numbers or various other ESPHome components and present them to your favorite Home Automation system. You
+can even write them as binary or float outputs from ESPHome.
 
 > [!NOTE]
 > This page is the starting point for everything Modbus in ESPHome, including hardware setup. See
@@ -35,7 +38,8 @@ Function code 23 (`0x17`, Read/Write Multiple Registers) is available in both ro
 ([`modbus_client.read_write_multiple_registers`](/components/modbus_client/)) and as a server handler
 ([Read/Write Multiple Registers](/components/modbus_server/#readwrite-multiple-registers-function-code-0x17)).
 
-Modbus RTU requires a [UART Bus](/components/uart) to communicate.
+The hub needs a [UART Bus](/components/uart/): a serial port for Modbus RTU, or usually a
+[TCP UART](/components/tcp_uart/) for Modbus TCP.
 
 ```yaml
 # Example configuration entry
@@ -61,6 +65,7 @@ on_...:
 - **flow_control_pin** (*Optional*, [Pin](/guides/configuration-types#pin)): The pin used to switch flow control.
   This is useful for RS485 transceivers that do not have automatic flow control switching,
   like the common MAX485. If your UART supports `flow_control_pin`, you should configure this in the `uart` component, not in the `modbus` component.
+  This option cannot be used when `protocol` is `modbus_tcp`.
 
 - **send_wait_time** (*Optional*, [Time](/guides/configuration-types#time)): Time in milliseconds before the next ModBUS command is sent when an answer from a previous command has not yet started (i.e. when to timeout and assume no response is coming). Defaults to 2000 ms.
   Set this value to the maximum time required for the slowest device on the bus to begin responding (time to first byte).
@@ -70,9 +75,40 @@ on_...:
 - **turnaround_time** (*Optional*, [Time](/guides/configuration-types#time)): Time in milliseconds before the next ModBUS command is sent after last response is received. This interval allows other devices on the bus time to process messages. Defaults to 600 ms.
   This value is ideally set to the maximum time required for the slowest device on the bus to process a message and be ready to process another. Note that all devices will receive all messages and will require time to process them even if they don't need to reply.
   If devices don't respond sometimes, it can help to increase this value.
-  This option is only valid when the `role` is `client`.
+  This option is only valid when the `role` is `client`. It cannot be used when `protocol` is `modbus_tcp`.
 
 - **role** (*Optional*, string): The role of this component, `client` or `server`. Defaults to `client`.
+
+- **protocol** (*Optional*, string): The framing on `uart_id`, `modbus_rtu` or `modbus_tcp`. See
+  [Modbus TCP](#modbus-tcp). Defaults to `modbus_rtu`.
+
+## Modbus TCP
+
+With `protocol: modbus_tcp` the hub speaks Modbus TCP on its UART, usually a [TCP UART](/components/tcp_uart/).
+The TCP UART opens or accepts the connection; the hub adds and removes the MBAP header. A device's `address` is
+sent as the unit identifier.
+
+```yaml
+# Example configuration entry
+modbus:
+  - uart_id: tcp_uart_1
+    protocol: modbus_tcp
+```
+
+As a client, the hub has one request open at a time. A response is accepted only with the transaction identifier of
+that request, and it is handed on with the address of the request, so a server that answers with unit identifier
+`255` is still understood. With `role: server`, add a [Modbus Server](/components/modbus_server/). Each reply
+carries the transaction identifier of its request, and a request to unit identifier `0` is treated as a broadcast
+and not answered.
+
+If the peer sends a frame with a wrong protocol identifier, the hub skips that frame. If a header has no usable
+length, the hub ignores the incoming bytes until the peer has been quiet for 100 ms. `flow_control_pin` and
+`turnaround_time` are Modbus RTU options and are rejected with `protocol: modbus_tcp`.
+
+> [!WARNING]
+> Modbus TCP has no encryption and no authentication. With `role: server`, anyone who can reach the TCP UART can
+> read and write the registers that the Modbus Server offers. `allowed_ips` on the TCP UART filters by address but
+> does not authenticate the peer. Only use Modbus TCP on a trusted network.
 
 ## Performance vs Stability
 
@@ -170,6 +206,7 @@ On the bus side, you need 120 Ohm termination resistors at the ends of the bus c
   [Binary Sensor](/components/binary_sensor/modbus_controller/), [Output](/components/output/modbus_controller/),
   [Switch](/components/switch/modbus_controller/), [Number](/components/number/modbus_controller/),
   [Select](/components/select/modbus_controller/), [Text Sensor](/components/text_sensor/modbus_controller/)
+- [TCP UART](/components/tcp_uart/)
 - [Modbus RTU Protocol Description](https://www.modbustools.com/modbus.html)
 - All modbus components require a [UART Bus](/components/uart/)
 - C++ client component authors should subclass `modbus::ModbusClientDevice`
