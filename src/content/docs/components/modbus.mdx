@@ -158,7 +158,7 @@ If the server does not answer within `send_wait_time`, a Modbus TCP client recei
 target device failed to respond) and a Modbus RTU client receives nothing. On a Modbus RTU server bus the hub then stays
 silent for the time of one frame of maximum length, about 270 ms at 9600 baud, so a reply that is only a little late is
 dropped. A reply that comes later still can be taken as the reply to the next request, so set `send_wait_time` above the
-response time of the slowest server.
+response time of the slowest server. The log shows how late such a reply came.
 
 The two UARTs of a forward cannot be used by another `modbus` hub or another component.
 
@@ -178,8 +178,8 @@ options of the same name and have their own meaning and defaults.
 - **peer_protocol** (**Required** when `peer_id` is set, string): The framing on `peer_id`, `modbus_rtu` or
   `modbus_tcp`. This option cannot be used without `peer_id`.
 - **send_wait_time** (*Optional*, [Time](/guides/configuration-types#time)): How long to wait for the server's
-  whole reply, counted from the end of the request. Set it above the response time of the slowest server and below
-  the client's own timeout. Defaults to `2000ms`.
+  reply to start. A reply that has started is received to its end. Set it above the response time of the slowest
+  server and below the client's own timeout. Defaults to `2000ms`.
 - **turnaround_time** (*Optional*, [Time](/guides/configuration-types#time)): The silence on a Modbus RTU server bus
   after a broadcast, before the next request. This option cannot be used when `peer_protocol` is `modbus_tcp`.
   Defaults to `200ms`.
