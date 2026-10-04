@@ -142,11 +142,13 @@ modbus:
     peer_protocol: modbus_rtu
 ```
 
-Requests are taken only from `uart_id`. Whatever the server sends while no request is open is dropped, and a reply
-must come from the addressed server with the function code of the request. While a request is open, further
-requests from a Modbus TCP client wait and are answered in order. A new request from a Modbus RTU client means it
-gave up on the open one: the hub waits for that reply or for `send_wait_time`, drops it, and then sends the new
-request. A request to address `0` is forwarded and not answered.
+Requests are taken only from `uart_id`. Whatever the server sends while no request is open is dropped. A reply must
+carry the function code of the request; on Modbus RTU it must also come from the addressed server, and on Modbus TCP it
+must carry the transaction identifier of the request and keeps the unit identifier of the request. While a request is
+open, further requests from a Modbus TCP client wait and are answered in order. A new request from a Modbus RTU client
+means it gave up on the open one: the hub waits for that reply or for `send_wait_time`, drops it, and then sends the new
+request. A write to address `0` is forwarded as a broadcast and not answered. A read to address `0` is dropped, because
+no server answers a broadcast.
 
 If the server does not answer within `send_wait_time`, a Modbus TCP client receives exception code `0x0B` (gateway
 target device failed to respond) and a Modbus RTU client receives nothing. On a Modbus RTU server bus the hub then
@@ -165,7 +167,7 @@ The two UARTs of a forward cannot be used by another `modbus` hub or another com
   Setting it makes the hub a forward. It must differ from `uart_id`. `role` cannot be set together with `peer_id`.
 - **protocol** (**Required** when `peer_id` is set, string): The framing on `uart_id`, `modbus_rtu` or `modbus_tcp`.
 - **peer_protocol** (**Required** when `peer_id` is set, string): The framing on `peer_id`, `modbus_rtu` or
-  `modbus_tcp`.
+  `modbus_tcp`. This option cannot be used without `peer_id`.
 - **send_wait_time** (*Optional*, [Time](/guides/configuration-types#time)): How long to wait for the server's
   reply. Set it below the client's own timeout. Defaults to `2000ms`.
 - **turnaround_time** (*Optional*, [Time](/guides/configuration-types#time)): The silence on a Modbus RTU server bus
