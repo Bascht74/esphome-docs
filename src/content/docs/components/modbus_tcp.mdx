@@ -8,9 +8,12 @@ import APIRef from '@components/APIRef.astro';
 This component turns Modbus RTU into Modbus TCP, and back. It does not open a socket and it has no pins.
 [TCP UART](/components/tcp_uart/) and [UART TCP](/components/uart_tcp/) stay raw and copy bytes unchanged.
 
-Set up a [TCP UART](/components/tcp_uart/) first. The hub's `uart_id` points here. `role` on this component is who sends the Modbus request. It defaults to `client`. `role` on the `tcp_uart` only decides who opens the TCP connection. The hub must use the same role.
+Set up a [TCP UART](/components/tcp_uart/) first. The hub's `uart_id` points here. `role` on this component is
+who sends the Modbus request. It defaults to `client`. `role` on the `tcp_uart` only decides who opens the TCP
+connection. The hub must use the same role.
 
-When `role` is `client`, the hub writes one RTU frame. That PDU is sent as one Modbus TCP request, and the matching response is turned back into RTU. One request is outstanding. A response with another transaction id is dropped.
+When `role` is `client`, the hub writes one RTU frame. That PDU is sent as one Modbus TCP request, and the matching
+response is turned back into RTU. One request is outstanding. A response with another transaction id is dropped.
 
 ```yaml
 # Example configuration entry
@@ -28,12 +31,14 @@ modbus:
   - uart_id: shelly_uart
 ```
 
-When `role` is `server`, a request from the TCP peer is turned into one RTU frame. The hub's reply is sent back with that request's transaction id. Address 0 is not answered.
+When `role` is `server`, a request from the TCP peer is turned into one RTU frame. The hub's reply is sent back with
+that request's transaction id. Address 0 is not answered.
 
 ```yaml
 # Example configuration entry
 tcp_uart:
   - id: inbound
+    role: server
     port: 502
 
 modbus_tcp:
@@ -49,7 +54,7 @@ modbus:
 The hub reads baud rate, data bits, parity and stop bits from the `tcp_uart`. Those settings are documented on
 [TCP UART](/components/tcp_uart/).
 
-## Configuration variables
+## Configuration Variables
 
 - **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID used for code generation.
   Use this ID as `uart_id` of the [Modbus](/components/modbus/) hub.
