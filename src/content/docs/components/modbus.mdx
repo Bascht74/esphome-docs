@@ -124,6 +124,58 @@ little left to reclaim and no room to raise it.
 > in that window is handed over as a single block. That makes it harder to recover cleanly from line noise, and
 > setting it too large may lead to problems parsing frames; reduce it again if you see them.
 
+## Forwarding
+
+With `peer_id`, the hub forwards one request at a time from a client on `uart_id` to a server on `peer_id`, and the
+reply back. Each side is Modbus RTU or Modbus TCP, set by `protocol` and `peer_protocol`, which are both required
+with `peer_id`. The hub does not answer requests itself, and no device can register on it.
+
+In this example a Modbus TCP client on the network reaches the devices on the serial bus `uart_bus`. `tcp_uart_1`
+is a [TCP UART](/components/tcp_uart/) with `role: server`.
+
+```yaml
+# Example configuration entry
+modbus:
+  - uart_id: tcp_uart_1
+    protocol: modbus_tcp
+    peer_id: uart_bus
+    peer_protocol: modbus_rtu
+```
+
+Requests are taken only from `uart_id`. Whatever the server sends while no request is open is dropped, and a reply
+must come from the addressed server with the function code of the request. While a request is open, further
+requests from a Modbus TCP client wait and are answered in order. A new request from a Modbus RTU client means it
+gave up on the open one: the hub waits for that reply or for `send_wait_time`, drops it, and then sends the new
+request. A request to address `0` is forwarded and not answered.
+
+If the server does not answer within `send_wait_time`, a Modbus TCP client receives exception code `0x0B` (gateway
+target device failed to respond) and a Modbus RTU client receives nothing. On a Modbus RTU server bus the hub then
+stays silent for one frame time, so a late reply is not taken for the next request.
+
+The two UARTs of a forward cannot be used by another `modbus` hub or another component.
+
+> [!WARNING]
+> Every request is forwarded, writes included. Modbus TCP has no encryption and no authentication: anyone who can
+> reach the TCP UART can read and write every device behind the forward. `allowed_ips` on the TCP UART filters by
+> address but does not authenticate the peer. Only use forwarding on a trusted network.
+
+### Forwarding Options
+
+- **peer_id** (*Optional*, [ID](/guides/configuration-types#id)): The [UART](/components/uart/) of the server side.
+  Setting it makes the hub a forward. It must differ from `uart_id`. `role` cannot be set together with `peer_id`.
+- **protocol** (**Required** when `peer_id` is set, string): The framing on `uart_id`, `modbus_rtu` or `modbus_tcp`.
+- **peer_protocol** (**Required** when `peer_id` is set, string): The framing on `peer_id`, `modbus_rtu` or
+  `modbus_tcp`.
+- **send_wait_time** (*Optional*, [Time](/guides/configuration-types#time)): How long to wait for the server's
+  reply. Set it below the client's own timeout. Defaults to `2000ms`.
+- **turnaround_time** (*Optional*, [Time](/guides/configuration-types#time)): The silence on a Modbus RTU server bus
+  after a broadcast, before the next request. This option cannot be used when `peer_protocol` is `modbus_tcp`.
+  Defaults to `200ms`.
+- **flow_control_pin** (*Optional*, [Pin](/guides/configuration-types#pin)): The RS485 driver enable pin for
+  `uart_id`. This option cannot be used when `protocol` is `modbus_tcp`.
+- **peer_flow_control_pin** (*Optional*, [Pin](/guides/configuration-types#pin)): The RS485 driver enable pin for
+  `peer_id`. This option cannot be used when `peer_protocol` is `modbus_tcp`.
+
 ## Hardware setup
 
 You need an RS485 transceiver module:
