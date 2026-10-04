@@ -99,11 +99,13 @@ As a client, the hub has one request open at a time. A response is accepted only
 that request, and it is handed on with the address of the request, so a server that answers with unit identifier
 `255` is still understood. With `role: server`, add a [Modbus Server](/components/modbus_server/). Each reply
 carries the transaction identifier of its request, and a request to unit identifier `0` is treated as a broadcast
-and not answered.
+and not answered. A request to a unit identifier that no Modbus Server on the hub uses is not answered either; to
+answer unit identifier `255`, give a Modbus Server the address `255`.
 
 If the peer sends a frame with a wrong protocol identifier, the hub skips that frame. If a header has no usable
-length, the hub ignores the incoming bytes until the peer has been quiet for 100 ms. `flow_control_pin` and
-`turnaround_time` are Modbus RTU options and are rejected with `protocol: modbus_tcp`.
+length, the hub ignores the incoming bytes until the peer has been quiet for 100 ms. A Modbus TCP hub reads its
+UART itself, so another `modbus` hub on the same UART is rejected. `flow_control_pin` and `turnaround_time` are
+Modbus RTU options and are rejected with `protocol: modbus_tcp`.
 
 > [!WARNING]
 > Modbus TCP has no encryption and no authentication. With `role: server`, anyone who can reach the TCP UART can
