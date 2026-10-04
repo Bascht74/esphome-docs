@@ -31,8 +31,10 @@ modbus:
   - uart_id: shelly_uart
 ```
 
-When `role` is `server`, a request from the TCP peer is turned into one RTU frame. The hub's reply is sent back with
-that request's transaction id. Address 0 is not answered.
+When `role` is `server`, each request from the TCP peer is turned into one RTU frame, one at a time: the next request
+waits until the reply has gone out, or for one second. The reply is sent back with that request's transaction id.
+Address 0 is not answered, and a request to an address that no Modbus Server on the hub uses is dropped without an
+answer.
 
 ```yaml
 # Example configuration entry
