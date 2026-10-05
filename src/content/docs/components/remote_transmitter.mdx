@@ -535,8 +535,10 @@ on_...:
 - **command** (*Optional*, int, [templatable](/automations/templates)): The 4-bit command/button code to send, see dumper output for more info. Defaults to `0x10`.
 - **code** (**Required**, int, [templatable](/automations/templates)): The 32-bit encrypted field to send.
 - **level** (*Optional*, boolean, [templatable](/automations/templates)): Low battery level status bit. Defaults to false.
-- **suffix** (*Optional*, int, [templatable](/automations/templates)): Extra bits sent after the 66-bit HCS301 word, LSB first, same PWM coding. Defaults to `0`.
-- **suffix_bits** (*Optional*, int, [templatable](/automations/templates)): How many of those bits to send, between `0` and `16`. Defaults to `0` (66-bit word only).
+- **suffix** (*Optional*, int, [templatable](/automations/templates)): Extra bits sent after the 66-bit HCS301
+  word, lowest bit first, in the same PWM coding. Must fit in **suffix_bits**. Defaults to `0`.
+- **suffix_bits** (*Optional*, int, [templatable](/automations/templates)): How many suffix bits to send, from `0`
+  to `16`. Defaults to `0`, which sends only the 66-bit word.
 - All other options from [Remote Transmitter Actions](#remote_transmitter-transmit_action).
 - A repeat **wait_time** of 15ms as shown replicates the repetition of an HCS301.
 
