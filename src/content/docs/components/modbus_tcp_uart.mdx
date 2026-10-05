@@ -1,6 +1,6 @@
 ---
 description: "Instructions for speaking Modbus TCP on a TCP UART in ESPHome."
-title: "Modbus TCP"
+title: "Modbus TCP UART"
 ---
 import APIRef from '@components/APIRef.astro';
 
@@ -21,9 +21,8 @@ tcp_uart:
   - id: shelly_link
     host: 192.0.2.10
     port: 502
-    baud_rate: 19200
 
-modbus_tcp:
+modbus_tcp_uart:
   - id: shelly_uart
     tcp_uart_id: shelly_link
 
@@ -43,7 +42,7 @@ tcp_uart:
     role: server
     port: 502
 
-modbus_tcp:
+modbus_tcp_uart:
   - id: bus
     tcp_uart_id: inbound
     role: server
@@ -70,4 +69,4 @@ The hub reads baud rate, data bits, parity and stop bits from the `tcp_uart`. Th
 - [UART TCP](/components/uart_tcp/)
 - [UART Bus](/components/uart/)
 - [Modbus](/components/modbus/)
-- <APIRef text="modbus_tcp.h" path="modbus_tcp/modbus_tcp.h" />
+- <APIRef text="modbus_tcp_uart.h" path="modbus_tcp_uart/modbus_tcp_uart.h" />
