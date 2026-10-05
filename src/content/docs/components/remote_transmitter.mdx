@@ -529,6 +529,8 @@ on_...:
 - **command** (*Optional*, int, [templatable](/automations/templates)): The 4-bit command/button code to send, see dumper output for more info. Defaults to `0x10`.
 - **code** (**Required**, int, [templatable](/automations/templates)): The 32-bit encrypted field to send.
 - **level** (*Optional*, boolean, [templatable](/automations/templates)): Low battery level status bit. Defaults to false.
+- **suffix** (*Optional*, int): Extra bits after the HCS301 word. Defaults to 0.
+- **suffix_bits** (*Optional*, int): How many bits to send, 0-16. Defaults to 0.
 - All other options from [Remote Transmitter Actions](#remote_transmitter-transmit_action).
 - A repeat **wait_time** of 15ms as shown replicates the repetition of an HCS301.
 
