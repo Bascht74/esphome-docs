@@ -97,13 +97,13 @@ automation is responsible for answering the client, if an answer is due. Broadca
 `on_request`.
 
 > [!NOTE]
-> With `on_request`, this hub answers for every address that has no local device. Use it only on a bus where no
-> other server device answers requests: the hub would take such a device's reply for a new request.
+> With `on_request`, this hub takes every request to an address that has no local device. Use it only on a bus
+> where no other server device answers requests: the hub would take such a device's reply for a new request.
 
 ```yaml
 modbus:
-  - id: master_port
-    uart_id: master_uart
+  - id: client_port
+    uart_id: client_uart
     role: server
     on_request:
       - lambda: |-
