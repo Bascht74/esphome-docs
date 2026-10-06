@@ -14,7 +14,8 @@ hub with `role: client`. A [Modbus Controller](/components/modbus_controller/) t
 bus.
 
 The gateway loads the [Modbus](/components/modbus/) component, and that needs a `modbus:` hub. Add a port with
-`id` and use it as the hub's `uart_id`, even when nothing on this device polls.
+`id` and use it as the hub's `uart_id`, even when nothing on this device polls. This is a temporary workaround until
+the Modbus helpers can be used without the hub.
 
 ```yaml
 # Example configuration entry
