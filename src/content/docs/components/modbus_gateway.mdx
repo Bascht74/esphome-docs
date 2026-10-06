@@ -43,10 +43,11 @@ modbus:
   restarted by a later read of the same registers. A new response from the bus starts it again. Defaults to
   `500ms`. `0s` disables the cache.
 - **cache_entries** (*Optional*, int): How many reads are kept. The cache stays off until this is set.
-  Defaults to `0`. The limit is 32 on the ESP8266, 512 when [PSRAM](/components/psram/) is enabled with
-  `ignore_not_found: false`, and 64 otherwise. One entry is one reply, at most 256 bytes. A longer reply is not
-  kept. The same read is answered from the stored reply. A different read replaces the least recently used entry
-  when the table is full. A write clears the entries, and a timeout clears the entries of that device.
+  Defaults to `0`. The limit is 16 on the ESP8266, 512 when [PSRAM](/components/psram/) is enabled with
+  `ignore_not_found: false`, and 64 otherwise. Each entry takes 272 bytes, all allocated at boot, in PSRAM when
+  the device has it. The same read is answered from the stored reply. When all entries are in use, a different
+  read replaces an expired one, else the one used longest ago. A write drops the entries of its device, a
+  broadcast drops all, and a timeout drops the entries of that device.
 - **ports** (**Required**, list): The clients. At least 1 and at most 4. See [Ports](#ports).
 
 ## Ports
@@ -90,7 +91,7 @@ A stored read. `inverter_bus` always uses the bus. `local_bus` may reuse a reply
 modbus_gateway:
   - uart_id: bms_bus
     cache_time: 500ms
-    cache_entries: 32
+    cache_entries: 16
     ports:
       - uart_id: inverter_bus
         cache: false
