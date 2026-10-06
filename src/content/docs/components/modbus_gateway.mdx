@@ -1,16 +1,20 @@
 ---
-description: "Instructions for sharing one Modbus RTU bus between several masters."
+description: "Instructions for sharing one Modbus RTU bus between several clients."
 title: "Modbus Gateway"
 ---
 import APIRef from '@components/APIRef.astro';
 
 
-The `modbus_gateway` component lets several Modbus masters share one RTU bus. One request is on the bus at a
-time, and the response goes back only to the port that sent it. The gateway does not poll. The masters do.
+The `modbus_gateway` component lets several Modbus clients share one RTU bus. One request is on the bus at a
+time, and the response goes back only to the port that sent it. The gateway does not poll. The clients do.
 
-Set up the [UART buses](/components/uart/) first. One bus is the server. Each other bus is a master. A port
-can instead be a UART this component creates. Use that id as the `uart_id` of a [Modbus](/components/modbus/)
-hub. A [Modbus Controller](/components/modbus_controller/) then uses the hub like any other bus.
+Set up the [UART buses](/components/uart/) first. One bus connects the servers. Each port connects a client. A
+port can instead be a UART this component creates. Use that id as the `uart_id` of a [Modbus](/components/modbus/)
+hub with `role: client`. A [Modbus Controller](/components/modbus_controller/) then uses the hub like any other
+bus.
+
+The gateway loads the [Modbus](/components/modbus/) component, and that needs a `modbus:` hub. Add a port with
+`id` and use it as the hub's `uart_id`, even when nothing on this device polls.
 
 ```yaml
 # Example configuration entry
@@ -22,15 +26,17 @@ modbus_gateway:
 
 modbus:
   - uart_id: local_bus
+    role: client
 ```
 
 ## Configuration Variables
 
 - **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID used for code generation.
-- **uart_id** (**Required**, [ID](/guides/configuration-types#id)): The [UART bus](/components/uart/) the server
-  is connected to. No other component reads or writes this bus.
+- **uart_id** (**Required**, [ID](/guides/configuration-types#id)): The [UART bus](/components/uart/) the servers
+  are connected to. No other component may use it in its `uart_id`.
 - **response_timeout** (*Optional*, [Time](/guides/configuration-types#time)): How long to wait for a response
-  before the next port may use the bus. Defaults to `500ms`.
+  before the next port may use the bus. Defaults to `500ms`. A client waits behind the other ports, so its own
+  timeout must be longer than the number of ports times the sum of `response_timeout` and the quiet time below.
 - **cache_time** (*Optional*, [Time](/guides/configuration-types#time)): How long one stored read is reused.
   It does nothing while `cache_entries` is `0`. The clock starts when that response arrives and is not
   restarted by a later read of the same registers. A new response from the bus starts it again. Defaults to
@@ -39,23 +45,30 @@ modbus:
   Defaults to `0`. The limit is 32 on the ESP8266, 512 when PSRAM is enabled, and 64 otherwise. One entry is
   one reply, at most 256 bytes. A longer reply is not kept. The same read is answered from the stored reply.
   A different read replaces the least recently used entry when the table is full. A write clears the entries.
-- **ports** (**Required**, list): The masters. At least 1 and at most 4. See [Ports](#ports).
+- **ports** (**Required**, list): The clients. At least 1 and at most 4. See [Ports](#ports).
 
 ## Ports
 
-Set `uart_id` or `id`, not both.
+Set exactly one of `uart_id` and `id`.
 
-- **uart_id** ([ID](/guides/configuration-types#id)): A [UART bus](/components/uart/) a master is connected to.
-  Requests are read from it and the response is written back. A UART can be listed once, and it cannot be the
-  server bus.
-- **id** ([ID](/guides/configuration-types#id)): Creates a UART. Use it as `uart_id` of a
-  [Modbus](/components/modbus/) hub, not the server bus. The new UART copies baud rate, data bits, parity and
-  stop bits from the server bus. Those settings are documented on the [UART bus](/components/uart/).
+- **uart_id** (*Optional*, [ID](/guides/configuration-types#id)): A [UART bus](/components/uart/) a client is
+  connected to. Requests are read from it and the response is written back. A UART can be listed once, it cannot
+  be the server bus, and no other component may use it.
+- **id** (*Optional*, [ID](/guides/configuration-types#id)): Creates a UART. Use it as `uart_id` of a
+  [Modbus](/components/modbus/) hub with `role: client`. The new UART copies baud rate, data bits, parity and
+  stop bits from the server bus, so that bus must be a [UART bus](/components/uart/) that sets them.
 - **cache** (*Optional*, boolean): Whether this port may be answered from a stored response. Defaults to
   `false`. `false` always reads the bus. The reply is still stored, so a port with `true` can use it until
   `cache_time` runs out.
 
-A port that sends again before it is served keeps the latest frame.
+## Bus Rules
+
+- A port that sends again before it is served keeps the latest frame.
+- A response is passed on only when its address, its function and, for a read, its byte count match the
+  request.
+- After a timeout the bus stays closed until it was quiet for the time of one 256-byte frame (267 ms at 9600
+  baud with 8N1), and anything that arrives in that time is dropped.
+- Address 0 is a broadcast. No response is expected, and the bus is held for 600 ms before the next request.
 
 ## Examples
 
