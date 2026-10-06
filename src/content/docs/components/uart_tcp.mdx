@@ -63,7 +63,9 @@ uart_tcp:
   `uart_tcp` or `tcp_uart` server on the same port is rejected.
 - **timeout** (*Optional*, [Time](/guides/configuration-types#time)): Close the connection when no byte has
   been sent or received for this long. Time is counted from the last byte, or from when the connection opened.
-  `0s` leaves it open. Defaults to `0s`. A UART that cannot take more bytes also counts as traffic, so the
+  `0s` turns the timeout off and leaves the connection open; any other value must be at least the main loop
+  interval ([`loop_interval`](/components/esphome#configuration-variables), `16ms` by default). Defaults to `0s`.
+  A UART that cannot take more bytes also counts as traffic, so the
   connection stays up while bytes are waiting for the bus even if the peer has stopped. On a client, the next
   connection waits for `reconnect_interval`. On a server, the next client is accepted as soon as this
   connection is closed.
