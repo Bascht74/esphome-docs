@@ -53,11 +53,14 @@ uart_tcp:
 ## Configuration variables
 
 - **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID used for code generation.
-- **uart_id** (**Required**, [ID](/guides/configuration-types#id)): The [UART bus](/components/uart/) to use.
+- **uart_id** (**Required**, [ID](/guides/configuration-types#id)): The [UART bus](/components/uart/) to use. This
+  component needs the UART for itself: another component with the same `uart_id`, or `dummy_receiver` in the UART's
+  `debug` option, is rejected.
 - **role** (*Optional*, string): `client` or `server`. Defaults to `client`.
 - **host** (**Required** when `role` is `client`, string): The host to connect to. An IP address or a hostname.
   This option cannot be used when `role` is `server`.
-- **port** (**Required**, int): The TCP port to connect to, or to listen on.
+- **port** (**Required**, int): The TCP port to connect to, or to listen on. When `role` is `server`, a second
+  `uart_tcp` or `tcp_uart` server on the same port is rejected.
 - **timeout** (*Optional*, [Time](/guides/configuration-types#time)): Close the connection when no byte has
   been sent or received for this long. Time is counted from the last byte, or from when the connection opened.
   `0s` leaves it open. Defaults to `0s`. A UART that cannot take more bytes also counts as traffic, so the
