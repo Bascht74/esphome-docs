@@ -7,7 +7,9 @@ import APIRef from '@components/APIRef.astro';
 
 The `uart_split` component reads one [UART bus](/components/uart/) and copies every received byte to each of its
 outputs. Another component uses an output as its `uart_id`. An output has the baud rate, data bits, parity and stop
-bits of the UART bus, and a component that requires certain settings is checked against those.
+bits of the UART bus, and a component that requires certain settings is checked against those. Settings changed on an
+output at runtime do not reach the pins: `load_settings()` on an output logs a warning and restores those of the UART
+bus.
 
 ```yaml
 # Example configuration entry
@@ -24,8 +26,10 @@ uart_split:
 a [UART TCP](/components/uart_tcp/) server at `tap` to publish that copy.
 
 > [!NOTE]
-> Another component on the same UART is rejected. This component has to be the only reader. Use an output
-> instead.
+> Another component on the same UART is rejected, and so is `dummy_receiver` in its `debug` options. This component
+> has to be the only reader. Use an output instead. The check does not see a `uart.write` action or a lambda that
+> uses the UART bus by its ID: a lambda that reads it takes bytes from the outputs, and bytes written there are not
+> copied to `BOTH` outputs. Point those at an output as well.
 
 > [!NOTE]
 > More than one output may write. Those bytes share one transmit line.
@@ -50,7 +54,8 @@ bytes wait.
 
 - **id** (*Optional*, [ID](/guides/configuration-types#id)): An ID to assign to this output. Use it as `uart_id`
   in another component. ESPHome assigns one when it is omitted.
-- **rx_only** (*Optional*, boolean): Drop bytes written to this output. Defaults to `false`.
+- **rx_only** (*Optional*, boolean): Drop bytes written to this output. A component that requires a TX pin, such
+  as [DFPlayer](/components/dfplayer/), is rejected on it. Defaults to `false`.
 - **direction** (*Optional*, string): `RX` or `BOTH`. `RX` copies only the bytes from the pins. `BOTH` also
   copies what the other outputs send. When `rx_only` is `true` and `direction` is omitted, the direction is
   `BOTH`. Otherwise it is `RX`.
