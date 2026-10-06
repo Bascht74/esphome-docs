@@ -1,14 +1,14 @@
 ---
-description: "Instructions for setting up a bridge between two UART buses in ESPHome."
+description: "Instructions for setting up a bridge between two UART buses in ESPHome"
 title: "UART Bridge"
 ---
+import APIRef from '@components/APIRef.astro';
 
-The `uart` platform of the [Bridge](/components/bridge/) component copies bytes unchanged, in both directions,
-between two [UART buses](/components/uart/). Each bus keeps the baud rate, data bits, parity and stop bits set
-on that bus.
+The UART Bridge (the `uart` platform of the [Bridge](/components/bridge/) component) copies bytes unchanged, in both
+directions, between two [UART buses](/components/uart/). Each bus keeps its own baud rate, data bits, parity and stop
+bits, so two serial devices with different settings can talk to each other through this device.
 
-Set up the two buses first. To publish the same bytes, for example with [UART TCP](/components/uart_tcp/), put
-a [UART Split](/components/uart_split/) on one bus and bridge one of its outputs.
+The example assumes two UART buses with the IDs `device_a` and `device_b` are configured.
 
 ```yaml
 # Example configuration entry
@@ -18,15 +18,35 @@ bridge:
     peer_id: device_b
 ```
 
-## Configuration variables
+## Configuration Variables
 
-- **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID of this bridge.
-- **uart_id** (**Required**, [ID](/guides/configuration-types#id)): One [UART bus](/components/uart/).
-- **peer_id** (**Required**, [ID](/guides/configuration-types#id)): The other [UART bus](/components/uart/).
+- **uart_id** (**Required**, [ID](/guides/configuration-types#id)): The ID of one UART bus.
+- **peer_id** (**Required**, [ID](/guides/configuration-types#id)): The ID of the other UART bus. The same bus on
+  both sides is rejected.
+- **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID for this component.
+
+> [!NOTE]
+> A bridge requires exclusive use of both buses. A configuration where another component or another bridge also
+> uses either bus is rejected, and so is `dummy_receiver` in the [debug](/components/uart#debugging) option of
+> either bus.
+
+## How It Works
+
+The bridge forwards bytes a block at a time:
+
+- It collects the bytes from a bus until that bus has been quiet for a frame gap, or until 256 bytes are in. On a
+  bus defined under `uart:`, the frame gap is 3.5 characters, but at least 1.75 ms, as in Modbus RTU. Any other
+  UART, such as [TCP UART](/components/tcp_uart/), USB or a UART expander, uses a frame gap of 50 ms.
+- On a bus defined under `uart:`, a block that starts a frame is sent once the line has been quiet for a frame gap.
+  A block that continues a frame cut at 256 bytes follows at once.
+- While one side is not connected, for example a [TCP UART](/components/tcp_uart/) without a connection, the bytes
+  for it are read and dropped, so a new connection gets no old bytes. A block for a side that takes no bytes for one
+  second is dropped too. Each drop logs a warning, at most once every 5 seconds per direction.
+- On ESP32, the UART hands received bytes over after `rx_timeout` quiet characters (see
+  [UART Bus](/components/uart/)). A pause inside a frame that is longer than that can split the frame in two.
 
 ## See Also
 
 - [Bridge](/components/bridge/)
 - [UART Bus](/components/uart/)
-- [UART Split](/components/uart_split/)
-- [UART TCP](/components/uart_tcp/)
+- <APIRef text="uart_bridge.h" path="uart/bridge/uart_bridge.h" />
