@@ -35,8 +35,9 @@ modbus:
 - **uart_id** (**Required**, [ID](/guides/configuration-types#id)): The [UART bus](/components/uart/) the servers
   are connected to. No other component may use it in its `uart_id`.
 - **response_timeout** (*Optional*, [Time](/guides/configuration-types#time)): How long to wait for a response
-  before the next port may use the bus. Defaults to `500ms`. A client waits behind the other ports, so its own
-  timeout must be longer than the number of ports times the sum of `response_timeout` and the quiet time below.
+  once the request has left the wire, before the next port may use the bus. Defaults to `500ms`, at most
+  `65535ms`. A client waits behind the other ports, so its own timeout must be longer than the number of ports
+  times the sum of `response_timeout` and the quiet time below.
 - **ports** (**Required**, list): The clients. At least 1 and at most 4. See [Ports](#ports).
 
 ## Ports
@@ -50,11 +51,20 @@ Set exactly one of `uart_id` and `id`.
   [Modbus](/components/modbus/) hub with `role: client`. The new UART copies baud rate, data bits, parity and
   stop bits from the server bus, so that bus must be a [UART bus](/components/uart/) that sets them.
 
+Each port takes about 280 bytes of RAM, a port with `id` about 330 more, and the gateway itself about 370.
+
 ## Bus Rules
 
-- A port that sends again before it is served keeps the latest frame.
+- A request starts after the bus was quiet for 3.5 characters, at least 1.75 ms. A frame longer than a UART's
+  transmit FIFO goes out in parts, without a pause inside the frame.
+- Each port buffers one 256-byte frame. A port that sends again before it is served keeps the latest request.
+  When the buffer is full, the rest waits in the port's UART.
+- A received frame ends after 3.5 quiet characters, or after 50 ms on a UART without line timing, such as a
+  TCP UART.
 - A response is passed on only when its address, its function and, for a read, its byte count match the
   request.
+- A port that cannot take its response (not connected, buffer full, or nothing taken for 20 ms) loses it, and a
+  warning is logged. The bus is free again at once.
 - After a timeout the bus stays closed until it was quiet for the time of one 256-byte frame (267 ms at 9600
   baud with 8N1), and anything that arrives in that time is dropped.
 - Address 0 is a broadcast. No response is expected, and the bus is held for 600 ms before the next request.
