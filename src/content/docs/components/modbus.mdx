@@ -37,6 +37,9 @@ Function code 23 (`0x17`, Read/Write Multiple Registers) is available in both ro
 
 Modbus RTU requires a [UART Bus](/components/uart) to communicate.
 
+Every component that uses Modbus needs a `modbus:` hub in the configuration; none is created automatically.
+An empty `modbus:` entry is enough when there is only one UART bus.
+
 ```yaml
 # Example configuration entry
 uart:

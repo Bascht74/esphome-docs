@@ -22,7 +22,8 @@ with ESPHome.
 The communication with this component is done via a [UART](/components/uart) using the [Modbus protocol](/components/modbus#modbus)
 over RS485 wiring. You will need an RS485 to UART converter for communication.
 You must therefore have a `uart:` entry in your configuration with both the TX and RX pins set
-to some pins on your board and the baud rate set to 9600bps.
+to some pins on your board and the baud rate set to 9600bps,
+and a [`modbus:`](/components/modbus/) entry using that UART.
 ! For the SDM230M, SDM120M Energy Monitor the default factory baud rate is 2400bps. You either need to change the code to 2400bps for these models or change the settings on your Energy Meter For more information search for your model: ([eastron's website](https://www.eastroneurope.com/products/category/din-rail-mounted-metering)).
 
 ```yaml
@@ -32,6 +33,8 @@ uart:
   tx_pin: D2
   baud_rate: 9600 #if your energy meter is SDM230M or SDM120M than change the baud_rate: 2400
   stop_bits: 1
+
+modbus:
 
 sensor:
   - platform: sdm_meter
