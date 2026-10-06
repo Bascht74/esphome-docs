@@ -539,7 +539,7 @@ on_...:
   word, lowest bit first, in the same PWM coding. Must fit in **suffix_bits**; a lambda value is cut to the
   lowest **suffix_bits** bits at run time. Defaults to `0`.
 - **suffix_bits** (*Optional*, int, [templatable](/automations/templates)): How many suffix bits to send, from `0`
-  to `16`. Defaults to `0`, which sends only the 66-bit word.
+  to `16`; a lambda value above `16` is capped at `16`. Defaults to `0`, which sends only the 66-bit word.
 - All other options from [Remote Transmitter Actions](#remote_transmitter-transmit_action).
 - A repeat **wait_time** of 15ms as shown replicates the repetition of an HCS301.
 
