@@ -26,19 +26,20 @@ bridge:
 - **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID for this component.
 
 > [!NOTE]
-> A bridge requires exclusive use of both buses. A configuration where another component or another bridge also
-> uses either bus is rejected, and so is `dummy_receiver` in the [debug](/components/uart#debugging) option of
-> either bus.
+> A bridge requires exclusive use of both buses. A configuration where another component (through `uart_id`) or
+> another bridge also uses either bus is rejected, and so is `dummy_receiver` in the
+> [debug](/components/uart#debugging) option of either bus.
 
 ## How It Works
 
 The bridge forwards bytes a block at a time:
 
 - It collects the bytes from a bus until that bus has been quiet for a frame gap, or until 256 bytes are in. On a
-  bus defined under `uart:`, the frame gap is 3.5 characters, but at least 1.75 ms, as in Modbus RTU. Any other
-  UART, such as [TCP UART](/components/tcp_uart/), USB or a UART expander, uses a frame gap of 50 ms.
-- On a bus defined under `uart:`, a block that starts a frame is sent once the line has been quiet for a frame gap.
-  A block that continues a frame cut at 256 bytes follows at once.
+  UART with a baud rate, such as a bus defined under `uart:`, a UART expander or a USB serial adapter, the frame gap
+  is 3.5 characters, but at least 1.75 ms, as in Modbus RTU. A [TCP UART](/components/tcp_uart/), whose baud rate is
+  only a placeholder, and a UART without a baud rate use a frame gap of 50 ms.
+- On a UART with a baud rate, other than a TCP UART, a block that starts a frame is sent once the line has been
+  quiet for a frame gap. A block that continues a frame cut at 256 bytes follows at once.
 - While one side is not connected, for example a [TCP UART](/components/tcp_uart/) without a connection, the bytes
   for it are read and dropped, so a new connection gets no old bytes. A block for a side that takes no bytes for one
   second is dropped too. Each drop logs a warning, at most once every 5 seconds per direction.
