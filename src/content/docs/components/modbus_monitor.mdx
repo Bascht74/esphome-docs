@@ -14,18 +14,19 @@ that is each request the hub sends.
 ```yaml
 # Example configuration entry
 modbus_monitor:
-  - modbus_id: modbus_bus
-    on_request:
+  - on_request:
       - lambda: |-
           ESP_LOGD("modbus_monitor", "Request to %u, function 0x%02X", address, request_pdu[0]);
 ```
 
-## Configuration variables
+## Configuration Variables
 
-- **modbus_id** (*Optional*, [ID](/guides/configuration-types#id)): The ID of the `modbus` hub to watch. Required
-  if there is more than one hub.
+- **modbus_id** (*Optional*, [ID](/guides/configuration-types#id)): The Modbus hub to watch. Automatically assigned
+  when a single hub is configured.
 
 - **on_request** (**Required**, [Automation](/automations)): Runs for each request. See below.
+
+Several `modbus_monitor` entries can watch the same hub.
 
 ## `on_request` Trigger
 
@@ -35,24 +36,25 @@ The automation gets two variables:
 - `request_pdu` (`std::span<const uint8_t>`): The request PDU: function code followed by data, without address and
   CRC.
 
-The data is only valid while the automation runs, so `delay`, `wait_until` and other actions that wait are not
-allowed in it. Copy what you need first.
+The data is only valid while the automation runs, so `delay`, `wait_until` and other actions that wait are rejected
+in it. Copy what you need first. Keep the automation short: it runs in the hub's loop.
 
-### Server hub
+### Server Hub
 
-The automation runs for every request the hub receives, for any address and for broadcasts. For a request to one
-of this hub's [Modbus Server](/components/modbus_server/) devices, it runs after the device has answered. Replies
-from other devices do not run it.
+The automation runs for every frame the hub reads as a request, for any address and for broadcasts. For a request
+to one of this hub's [Modbus Server](/components/modbus_server/) devices, it runs after the device has answered or
+queued its answer. Replies from other devices do not run it.
 
 > [!NOTE]
 > The hub tells a request from a reply by the order and shape of the frames. If a device does not answer, the next
-> single write or mask write (function codes `0x05`, `0x06`, `0x16`) is taken for the missing reply and does not run
-> the automation. When the hub expects no reply, for example at start-up, the reply to a single write can run it.
+> request that has the shape of the missing reply is taken for it and does not run the automation, for example a
+> single write or mask write (function codes `0x05`, `0x06`, `0x16`). When the hub expects no reply, for example at
+> start-up, a reply of that shape or an exception reply (`request_pdu[0] & 0x80`) can run it.
 
-### Client hub
+### Client Hub
 
-The automation runs each time the hub sends a request, after the request has gone out. A retry runs it again. A
-request that was queued but never sent does not run it.
+The automation runs each time the hub sends a request, broadcasts and retries included. A request that was queued
+but never sent does not run it.
 
 ## See Also
 
