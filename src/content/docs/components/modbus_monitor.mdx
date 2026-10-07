@@ -27,8 +27,6 @@ modbus_monitor:
 
 - **on_request** (**Required**, [Automation](/automations)): Runs for each request. See below.
 
-You can add more than one `modbus_monitor` entry, for one hub or for several hubs.
-
 ## `on_request` Trigger
 
 The automation gets two variables:
@@ -42,20 +40,14 @@ allowed in it. Copy what you need first.
 
 ### Server hub
 
-The automation runs for every request the hub receives, for any address and for broadcasts:
+The automation runs for every request the hub receives, for any address and for broadcasts. For a request to one
+of this hub's [Modbus Server](/components/modbus_server/) devices, it runs after the device has answered. Replies
+from other devices do not run it.
 
-- For a request to one of this hub's [Modbus Server](/components/modbus_server/) devices, it runs after the device
-  has answered.
-- For a request to any other address, the hub expects the reply of the device at that address next. That reply does
-  not run the automation.
-
-The hub tells a request from a reply by the order of the frames and by their shape. Two cases can go wrong:
-
-- If the other device does not answer, the next request is taken for the missing reply when it has the shape of a
-  reply, and does not run the automation. This happens with single writes and mask writes (function codes `0x05`,
-  `0x06` and `0x16`), whose reply has the same shape as the request, to any address.
-- When the hub expects no reply, for example at start-up or after a broadcast, a reply to a write has the shape of a
-  request and runs the automation.
+> [!NOTE]
+> The hub tells a request from a reply by the order and shape of the frames. If a device does not answer, the next
+> single write or mask write (function codes `0x05`, `0x06`, `0x16`) is taken for the missing reply and does not run
+> the automation. When the hub expects no reply, for example at start-up, the reply to a single write can run it.
 
 ### Client hub
 
