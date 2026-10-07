@@ -55,7 +55,8 @@ uart_tcp:
 - **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID used for code generation.
 - **uart_id** (**Required**, [ID](/guides/configuration-types#id)): The [UART bus](/components/uart/) to use. This
   component needs the UART for itself: another component with the same `uart_id`, or `dummy_receiver` in the UART's
-  `debug` option, is rejected.
+  [debug](/components/uart/#debugging) option, is rejected. A `uart.write` action or a lambda that uses the UART is
+  not detected, so avoid them.
 - **role** (*Optional*, string): `client` or `server`. Defaults to `client`.
 - **host** (**Required** when `role` is `client`, string): The host to connect to. An IP address or a hostname.
   This option cannot be used when `role` is `server`.
