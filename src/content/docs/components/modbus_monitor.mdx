@@ -1,0 +1,69 @@
+---
+description: "Instructions for setting up the Modbus Monitor component."
+title: "Modbus Monitor"
+params:
+  seo:
+    description: Instructions for setting up the Modbus Monitor component.
+    image: modbus.png
+---
+
+The `modbus_monitor` component runs an automation for each request that a [Modbus](/components/modbus/) hub
+handles. On a hub with the `server` role, that is each request the hub receives. On a hub with the `client` role,
+that is each request the hub sends.
+
+```yaml
+# Example configuration entry
+modbus_monitor:
+  - modbus_id: modbus_bus
+    on_request:
+      - lambda: |-
+          ESP_LOGD("modbus_monitor", "Request to %u, function 0x%02X", address, request_pdu[0]);
+```
+
+## Configuration variables
+
+- **modbus_id** (*Optional*, [ID](/guides/configuration-types#id)): The ID of the `modbus` hub to watch. Required
+  if there is more than one hub.
+
+- **on_request** (**Required**, [Automation](/automations)): Runs for each request. See below.
+
+You can add more than one `modbus_monitor` entry, for one hub or for several hubs.
+
+## `on_request` Trigger
+
+The automation gets two variables:
+
+- `address` (`uint8_t`): The address the request was sent to. `0` is a broadcast.
+- `request_pdu` (`std::span<const uint8_t>`): The request PDU: function code followed by data, without address and
+  CRC.
+
+The data is only valid while the automation runs, so `delay`, `wait_until` and other actions that wait are not
+allowed in it. Copy what you need first.
+
+### Server hub
+
+The automation runs for every request the hub receives, for any address and for broadcasts:
+
+- For a request to one of this hub's [Modbus Server](/components/modbus_server/) devices, it runs after the device
+  has answered.
+- For a request to any other address, the hub expects the reply of the device at that address next. That reply does
+  not run the automation.
+
+The hub tells a request from a reply by the order of the frames and by their shape. Two cases can go wrong:
+
+- If the other device does not answer, the next request is taken for the missing reply when it has the shape of a
+  reply, and does not run the automation. This happens with single writes and mask writes (function codes `0x05`,
+  `0x06` and `0x16`), whose reply has the same shape as the request, to any address.
+- When the hub expects no reply, for example at start-up or after a broadcast, a reply to a write has the shape of a
+  request and runs the automation.
+
+### Client hub
+
+The automation runs each time the hub sends a request, after the request has gone out. A retry runs it again. A
+request that was queued but never sent does not run it.
+
+## See Also
+
+- [Modbus Component](/components/modbus/)
+- [Modbus Client](/components/modbus_client/)
+- [Modbus Server](/components/modbus_server/)

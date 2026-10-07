@@ -74,42 +74,6 @@ on_...:
 
 - **role** (*Optional*, string): The role of this component, `client` or `server`. Defaults to `client`.
 
-- **on_request** (*Optional*, [Automation](/automations)): Runs for each request to an address that no
-  [Modbus Server](/components/modbus_server/) device on this hub serves. Only valid when the `role` is `server`.
-  See [Handling Requests for Other Addresses](#handling-requests-for-other-addresses).
-
-## Handling Requests for Other Addresses
-
-A server hub answers requests for the addresses of its [Modbus Server](/components/modbus_server/) devices. A
-request to any other address normally belongs to another device on the same bus, so the hub ignores it and expects
-that device's reply next.
-
-With `on_request`, such a request is handed to an automation instead, for example to pass it on to a device on
-another bus. The automation gets two variables:
-
-- `address` (`uint8_t`): The address the request was sent to.
-- `request_pdu` (`std::span<const uint8_t>`): The request PDU: function code followed by data, without address and
-  CRC. The data is only valid while the automation runs, so `delay`, `wait_until` and other actions that wait are not
-  allowed in it. Copy what you need first.
-
-While `on_request` is set, the hub does not expect a reply from another device after such a request. The
-automation is responsible for answering the client, if an answer is due. Broadcasts (address `0`) never reach
-`on_request`.
-
-> [!NOTE]
-> With `on_request`, this hub takes every request to an address that has no local device. Use it only on a bus
-> where no other server device answers requests: the hub would take such a device's reply for a new request.
-
-```yaml
-modbus:
-  - id: client_port
-    uart_id: client_uart
-    role: server
-    on_request:
-      - lambda: |-
-          ESP_LOGD("modbus", "Request to %u, function 0x%02X", address, request_pdu[0]);
-```
-
 ## Performance vs Stability
 
 The default settings are aimed to provide high stability (low error rate) for a wide variety of devices. If you are
@@ -197,6 +161,8 @@ On the bus side, you need 120 Ohm termination resistors at the ends of the bus c
   [Modbus Client](/components/modbus_client/)
 - For serving registers in response to client requests from another device, use
   [Modbus Server](/components/modbus_server/)
+- To run an automation for each request a hub receives or sends, use
+  [Modbus Monitor](/components/modbus_monitor/)
 - There are many components which communicate directly via the modbus hub (no controller needed):
   [Growatt Solar](/components/sensor/growatt_solar/), [Havells Solar](/components/sensor/havells_solar/),
   [Kuntze Pool Monitor](/components/sensor/kuntze/), [PZEMAC](/components/sensor/pzemac/),
