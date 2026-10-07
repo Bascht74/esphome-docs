@@ -6,7 +6,7 @@ import APIRef from '@components/APIRef.astro';
 
 
 This component turns Modbus RTU into Modbus TCP, and back. It does not open a socket and it has no pins.
-[TCP UART](/components/tcp_uart/) and [UART TCP](/components/uart_tcp/) stay raw and copy bytes unchanged.
+[TCP UART](/components/tcp_uart/) stays raw and copies bytes unchanged.
 
 Set up a [TCP UART](/components/tcp_uart/) first. The hub's `uart_id` points here. `role` on this component is
 who sends the Modbus request. It defaults to `client`. `role` on the `tcp_uart` only decides who opens the TCP
@@ -32,9 +32,8 @@ modbus:
 
 When `role` is `server`, each request from the TCP peer is turned into one RTU frame, one at a time: the next request
 waits until the reply has gone out, or for one second, or for the longest `send_wait_time` of a client `modbus` hub if
-that is longer. The reply is sent back with that request's transaction id. Address 0 is not answered. A request to an
-address that no Modbus Server on the hub uses is dropped without an answer, unless a `modbus_monitor` watches the
-hub.
+that is longer. The reply is sent back with that request's transaction id. Address 0 is not answered. If the hub has a
+Modbus Server, a request to an address that no Modbus Server on the hub uses is dropped without an answer.
 
 ```yaml
 # Example configuration entry
@@ -67,7 +66,6 @@ The hub reads baud rate, data bits, parity and stop bits from the `tcp_uart`. Th
 ## See Also
 
 - [TCP UART](/components/tcp_uart/)
-- [UART TCP](/components/uart_tcp/)
 - [UART Bus](/components/uart/)
 - [Modbus](/components/modbus/)
 - <APIRef text="modbus_tcp_uart.h" path="modbus_tcp_uart/modbus_tcp_uart.h" />

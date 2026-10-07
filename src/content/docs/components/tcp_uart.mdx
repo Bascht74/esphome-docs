@@ -54,7 +54,8 @@ tcp_uart:
     port: 8899
 ```
 
-The connecting client sends raw bytes, for example RTU frames for `modbus`, not Modbus TCP.
+The connecting client sends raw bytes, for example RTU frames for `modbus`, not Modbus TCP. For a Modbus TCP client,
+put [Modbus TCP UART](/components/modbus_tcp_uart/) in front of this component and point the hub at that id.
 
 ## Configuration Variables
 
