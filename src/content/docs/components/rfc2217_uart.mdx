@@ -10,7 +10,8 @@ This component serves a hardware [UART bus](/components/uart/) over Telnet COM P
 The TCP UART keeps the connection; this component opens no socket of its own.
 
 Every payload byte passes unchanged, `0x11` and `0x13` included. When its buffer fills, the server sends
-FLOWCONTROL-SUSPEND and later FLOWCONTROL-RESUME, not XON/XOFF characters.
+FLOWCONTROL-SUSPEND and later FLOWCONTROL-RESUME, not XON/XOFF characters. pySerial ignores them; TCP flow control
+then slows it down.
 
 > [!WARNING]
 > The connection is plain TCP with no encryption and no authentication; `allowed_ips` on the TCP UART filters by
@@ -27,15 +28,21 @@ rfc2217_uart:
 
 The example assumes a TCP UART with `role: server` and the id `inbound`, and a UART bus with the id `uart_bus`.
 
+> [!NOTE]
+> While no client is connected, bytes from the UART are discarded.
+
 ## Line Settings
 
 - On ESP32, a new baud rate, data size (5 to 8), parity (`NONE`, `ODD`, `EVEN`) or stop size (1 or 2) is applied.
-  A rate the UART cannot reach keeps the previous one.
+  Other values, such as `MARK` parity or 1.5 stop bits, and a rate the UART cannot reach are answered with the value
+  in use.
 - On the other platforms the line stays as configured, and each request is answered with the configured value.
   A client that asks for another value gets an error, so open the port with the configured settings.
-- When the client disconnects, the line returns to the configured settings.
+- A change waits until the bytes written before it have left. At a low baud rate with much data queued, this can take
+  longer than pySerial waits for the answer, 3 seconds; raise it with `?timeout=` in the URL.
+- When the client disconnects, the bytes it sent still go out; then the line returns to the configured settings.
 - Flow control, BREAK, DTR and RTS are answered with "off": the UART has none of them. No line or modem state is
-  reported.
+  reported, so pySerial's `cts`, `dsr`, `ri` and `cd` raise an error.
 
 ## Clients
 
@@ -49,8 +56,10 @@ port.rts = False
 port.open()
 ```
 
-esptool resets the chip through DTR and RTS, which this UART does not have. Put the chip into download mode by hand
-and add `?ign_set_control`; esptool also changes the baud rate, so this needs the server on an ESP32.
+esptool resets the chip through DTR and RTS, which this UART does not have. Put the chip into download mode by hand,
+run esptool with `--before no-reset`, and add `?ign_set_control` to the URL. esptool connects at 115200 baud and
+switches to `--baud` only when that is higher; on platforms other than ESP32, configure the UART at 115200 and keep
+the default `--baud`.
 
 ## Configuration Variables
 
@@ -60,6 +69,8 @@ and add `?ign_set_control`; esptool also changes the baud rate, so this needs th
 - **uart_id** (**Required**, [ID](/guides/configuration-types#id)): The hardware UART. No other component may use
   it.
 - **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID used for code generation.
+
+The check that no other component uses a UART does not see actions and lambdas that use it by id.
 
 ## See Also
 
