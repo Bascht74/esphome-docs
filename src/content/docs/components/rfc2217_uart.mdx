@@ -1,21 +1,41 @@
 ---
-description: "Instructions for serving a UART over RFC 2217 (Telnet COM Port Control) in ESPHome"
+description: "Instructions for using RFC 2217 (Telnet COM Port Control) on a TCP UART in ESPHome"
 title: "RFC 2217 UART"
 ---
 import APIRef from '@components/APIRef.astro';
 
-This component serves a hardware [UART bus](/components/uart/) over Telnet COM Port Control
-([RFC 2217](https://www.rfc-editor.org/rfc/rfc2217)) on a [TCP UART](/components/tcp_uart/). Unlike
-[UART TCP](/components/uart_tcp/), it lets the client set the line: baud rate, data bits, parity and stop bits.
-The TCP UART keeps the connection; this component opens no socket of its own.
+This component speaks Telnet COM Port Control ([RFC 2217](https://www.rfc-editor.org/rfc/rfc2217)) on a
+[TCP UART](/components/tcp_uart/). Unlike plain bytes over TCP, it also carries the line settings: baud rate, data
+bits, parity and stop bits. The TCP UART keeps the connection; this component opens no socket of its own.
 
-Every payload byte passes unchanged, `0x11` and `0x13` included. When its buffer fills, the server sends
-FLOWCONTROL-SUSPEND and later FLOWCONTROL-RESUME, not XON/XOFF characters.
+- As a client (`role: client`), it is a [UART bus](/components/uart/) whose line settings go to an RFC 2217 server.
+- As a server (`role: server`), it lets an RFC 2217 client use a hardware UART and set its line.
+
+Every payload byte passes unchanged, `0x11` and `0x13` included.
 
 > [!WARNING]
 > The connection is plain TCP with no encryption and no authentication; `allowed_ips` on the TCP UART filters by
 > address but does not authenticate the peer. If it is omitted, any host that can reach the port is accepted, and
-> that client can change the line settings of the UART. Only use this component on a trusted network.
+> a client of the server can change the line settings of the UART. Only use this component on a trusted network.
+
+## Client
+
+```yaml
+# Example configuration entry
+rfc2217_uart:
+  - id: remote_port
+    tcp_uart_id: remote_link
+    baud_rate: 19200
+```
+
+The example assumes a TCP UART with the id `remote_link`. Use `remote_port` as `uart_id` in other components.
+
+The settings are sent on each connect, and again when a lambda calls `load_settings()` after changing them on ESP32
+and ESP8266; see [Changing at runtime](/components/uart/#changing-at-runtime). After a connect, written bytes wait
+for the settings, at most 3 seconds. If the server answers with another value, a warning is logged. The flow control
+of the server's port is left as the server has it.
+
+## Server
 
 ```yaml
 # Example configuration entry
@@ -27,8 +47,6 @@ rfc2217_uart:
 
 The example assumes a TCP UART with `role: server` and the id `inbound`, and a UART bus with the id `uart_bus`.
 
-## Line Settings
-
 - On ESP32, a new baud rate, data size (5 to 8), parity (`NONE`, `ODD`, `EVEN`) or stop size (1 or 2) is applied.
   A rate the UART cannot reach keeps the previous one.
 - On the other platforms the line stays as configured, and each request is answered with the configured value.
@@ -36,8 +54,7 @@ The example assumes a TCP UART with `role: server` and the id `inbound`, and a U
 - When the client disconnects, the line returns to the configured settings.
 - Flow control, BREAK, DTR and RTS are answered with "off": the UART has none of them. No line or modem state is
   reported.
-
-## Clients
+- When its buffer fills, the server sends FLOWCONTROL-SUSPEND and later FLOWCONTROL-RESUME, not XON/XOFF characters.
 
 pySerial compares every answer with its request. It asks for DTR and RTS on when it opens the port, so set them off
 first, or add `?ign_set_control` to the URL:
@@ -54,12 +71,23 @@ and add `?ign_set_control`; esptool also changes the baud rate, so this needs th
 
 ## Configuration Variables
 
-- **role** (**Required**, string): `server`.
+- **role** (*Optional*, string): `client` or `server`. Defaults to `client`.
 - **tcp_uart_id** (**Required**, [ID](/guides/configuration-types#id)): The [TCP UART](/components/tcp_uart/) that
   carries the connection. No other component may use it.
+- **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID used for code generation.
+
+When `role` is `client`:
+
+- **baud_rate** (**Required**, int): The baud rate sent to the server.
+- **data_bits** (*Optional*, int): The data bits sent to the server, `5` to `8`. Defaults to `8`.
+- **parity** (*Optional*): The parity sent to the server. One of `NONE`, `EVEN`, `ODD`. Defaults to `NONE`.
+- **stop_bits** (*Optional*, int): The stop bits sent to the server. One of `1`, `2`. Defaults to `1`.
+- **debug** (*Optional*): Logs the bytes read and written, as for the [UART bus](/components/uart/#debugging).
+
+When `role` is `server`:
+
 - **uart_id** (**Required**, [ID](/guides/configuration-types#id)): The hardware UART. No other component may use
   it.
-- **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID used for code generation.
 
 ## See Also
 
