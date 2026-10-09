@@ -1,0 +1,96 @@
+---
+description: "Instructions for setting up RFC 2217 (Telnet COM Port Control) on a TCP UART in ESPHome"
+title: "RFC 2217 UART"
+---
+import APIRef from '@components/APIRef.astro';
+
+This component speaks Telnet COM Port Control ([RFC 2217](https://www.rfc-editor.org/rfc/rfc2217)) on a
+[TCP UART](/components/tcp_uart/). Unlike the raw `tcp_uart`, it also carries the line settings: baud rate, data
+bits, parity and stop bits. The `tcp_uart` keeps the connection; this component opens no socket of its own.
+
+- As a client (`role: client`), it is a [UART bus](/components/uart/) that sends its line settings to an RFC 2217
+  server, for example `ser2net` with RFC 2217 enabled.
+- As a server (`role: server`), it gives an RFC 2217 client such as pySerial's `rfc2217://` access to a hardware
+  UART.
+
+Every payload byte passes unchanged, including `0x11` and `0x13`. Flow control uses the RFC 2217 commands
+FLOWCONTROL-SUSPEND and FLOWCONTROL-RESUME, not XON/XOFF characters in the data.
+
+> [!WARNING]
+> The connection is plain TCP with no encryption and no authentication. A client of the server can change the
+> line settings of the hardware UART. Use `allowed_ips` on the `tcp_uart` and only use this component on a trusted
+> network.
+
+## Client
+
+```yaml
+# Example configuration entry
+tcp_uart:
+  - id: remote_link
+    host: 192.0.2.10
+    port: 2217
+
+rfc2217_uart:
+  - id: remote_port
+    tcp_uart_id: remote_link
+    baud_rate: 19200
+    parity: EVEN
+```
+
+Use `remote_port` as `uart_id` in other components. The settings are sent on each connect, and again when a lambda
+calls `load_settings()` after changing them on ESP32 and ESP8266; see
+[Changing at runtime](/components/uart/#changing-at-runtime). If the server answers with another value, a
+warning is logged.
+
+## Server
+
+```yaml
+# Example configuration entry
+tcp_uart:
+  - id: inbound
+    role: server
+    port: 2217
+
+rfc2217_uart:
+  - id: port_server
+    tcp_uart_id: inbound
+    role: server
+    uart_id: uart_bus
+```
+
+The server answers every setting with the value in use:
+
+- On ESP32 and ESP8266 it loads a new baud rate (300 to 5000000), data size (5 to 8), parity (`NONE`, `ODD`,
+  `EVEN`) or stop size (1 or 2) into the UART. Other values, and on other platforms every value, are answered
+  with the setting that stays in use.
+- Flow control is answered with "none", BREAK with "off", and the line and modem state masks with `0`.
+- DTR and RTS requests get no answer, since the UART has no such lines.
+- PURGE-DATA drops the bytes not yet passed on and is confirmed. Bytes already handed to the UART driver are still
+  sent.
+
+> [!NOTE]
+> pySerial waits for an answer to DTR and RTS while opening the port. Add `?ign_set_control` to the URL, for example
+> `rfc2217://192.0.2.20:2217?ign_set_control`.
+
+## Configuration Variables
+
+- **id** (*Optional*, [ID](/guides/configuration-types#id)): Manually specify the ID used for code generation.
+- **tcp_uart_id** (**Required**, [ID](/guides/configuration-types#id)): The [TCP UART](/components/tcp_uart/)
+  that carries the connection.
+- **role** (*Optional*, string): `client` or `server`. Defaults to `client`.
+- **uart_id** (**Required** when `role` is `server`, [ID](/guides/configuration-types#id)): The hardware UART.
+- **baud_rate** (**Required** when `role` is `client`, int): The baud rate sent to the server.
+- **data_bits** (*Optional* when `role` is `client`, int): The data bits sent to the server, `5` to `8`. Defaults
+  to `8`.
+- **parity** (*Optional* when `role` is `client`): The parity sent to the server. One of `NONE`, `EVEN`, `ODD`.
+  Defaults to `NONE`.
+- **stop_bits** (*Optional* when `role` is `client`, int): The stop bits sent to the server. One of `1`, `2`.
+  Defaults to `1`.
+- **debug** (*Optional* when `role` is `client`): Logs the bytes read and written, as for the
+  [UART bus](/components/uart/#debugging).
+
+## See Also
+
+- [TCP UART](/components/tcp_uart/)
+- [UART Bus](/components/uart/)
+- <APIRef text="rfc2217_uart.h" path="rfc2217_uart/rfc2217_uart.h" />
