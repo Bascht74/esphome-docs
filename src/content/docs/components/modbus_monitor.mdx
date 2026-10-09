@@ -7,16 +7,16 @@ params:
     image: modbus.png
 ---
 
-The `modbus_monitor` component runs an automation for each request that a [Modbus](/components/modbus/) hub
-handles. On a hub with the `server` role, that is each request the hub receives. On a hub with the `client` role,
-that is each request the hub sends.
+The `modbus_monitor` component runs automations for the requests and responses that a [Modbus](/components/modbus/)
+hub handles. On a hub with the `server` role, that is each request the hub receives and each response of another
+device. On a hub with the `client` role, that is each request the hub sends and each response it gets.
 
 ```yaml
 # Example configuration entry
 modbus_monitor:
   - on_request:
       - lambda: |-
-          ESP_LOGD("modbus_monitor", "Request to %u, function 0x%02X", address, request_pdu[0]);
+          ESP_LOGD("modbus_monitor", "Request to %u, function 0x%02X", address, request[0]);
 ```
 
 ## Configuration Variables
@@ -24,37 +24,37 @@ modbus_monitor:
 - **modbus_id** (*Optional*, [ID](/guides/configuration-types#id)): The Modbus hub to watch. Automatically assigned
   when a single hub is configured.
 
-- **on_request** (**Required**, [Automation](/automations)): Runs for each request. See below.
+- **on_request** (*Optional*, [Automation](/automations)): Runs for each request. See below.
 
-Several `modbus_monitor` entries can watch the same hub.
+- **on_response** (*Optional*, [Automation](/automations)): Runs for each response. See below.
 
-## `on_request` Trigger
+At least one of `on_request` and `on_response` is required. Several `modbus_monitor` entries can watch the same hub.
 
-The automation gets two variables:
+## Automation Variables
 
 - `address` (`uint8_t`): The address the request was sent to. `0` is a broadcast.
-- `request_pdu` (`std::span<const uint8_t>`): The request PDU: function code followed by data, without address and
-  CRC.
+- `request` (`std::span<const uint8_t>`): The request PDU: function code followed by data, without address and CRC.
+- `response` (`std::span<const uint8_t>`, `on_response` only): The response PDU, in the same form. An exception
+  response has bit 7 of the function code set (`response[0] & 0x80`).
 
 The data is only valid while the automation runs, so `delay`, `wait_until` and other actions that wait are rejected
 in it. Copy what you need first. Keep the automation short: it runs in the hub's loop.
 
 ### Server Hub
 
-The automation runs for every frame the hub reads as a request, for any address and for broadcasts. For a request
-to one of this hub's [Modbus Server](/components/modbus_server/) devices, it runs after the device has answered or
-queued its answer. Replies from other devices do not run it.
+`on_request` runs for every frame the hub reads as a request, for any address and for broadcasts. For a request to
+one of this hub's [Modbus Server](/components/modbus_server/) devices, it runs after the device has answered or
+queued its answer. `on_response` runs for the reply of another device to a request the hub has seen.
 
 > [!NOTE]
 > The hub tells a request from a reply by the order and shape of the frames. If a device does not answer, the next
-> request that has the shape of the missing reply is taken for it and does not run the automation, for example a
-> single write or mask write (function codes `0x05`, `0x06`, `0x16`). When the hub expects no reply, for example at
-> start-up, a reply of that shape or an exception reply (`request_pdu[0] & 0x80`) can run it.
+> request that has the shape of the missing reply is taken for it, for example a single write or mask write
+> (function codes `0x05`, `0x06`, `0x16`).
 
 ### Client Hub
 
-The automation runs each time the hub sends a request, broadcasts and retries included. A request that was queued
-but never sent does not run it.
+`on_request` runs each time the hub sends a request, broadcasts and retries included. A request that was queued but
+never sent does not run it. `on_response` runs for each response that matches the request the hub is waiting for.
 
 ## See Also
 
