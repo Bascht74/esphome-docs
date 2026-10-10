@@ -78,20 +78,23 @@ on_...:
   code is rejected at config time, and a lambda-built one is sent without it. Defaults to `false`.
 - **on_sent** (*Optional*, [Automation](/automations/)): Fires when the frame is written to the wire. Lambda
   variables: `address` (`uint8_t`, the request's device address) and `request` (`std::span<const uint8_t>`, the PDU
-  sent). This fires once per transmission, before any reply, and does not fire when the send ends in `on_not_sent`
-  (nothing was transmitted). Exactly one of `on_response`/`on_error`/`on_no_response`/`on_not_sent` follows each
-  transmission attempt - a retry reopens this cycle for its own attempt; see [Behavior](#behavior).
+  sent). This fires once per transmission, before any reply,
+  and does not fire when the send ends in `on_not_sent` (nothing was transmitted). Exactly one of
+  `on_response`/`on_error`/`on_no_response`/`on_not_sent` follows each transmission attempt - a retry reopens this
+  cycle for its own attempt; see [Behavior](#behavior).
 - **on_response** (*Optional*, [Automation](/automations/)): Fires when a matching reply arrives. Lambda variables:
-  `address` (`uint8_t`, the request's device address), then `request` and `response`, both `std::span<const uint8_t>`
-  (PDUs: function code plus data, no address/CRC). The spans are only valid inside the handler - copy bytes out if
-  they must outlive it.
+  `address` (`uint8_t`, the request's device address), then
+  `request` and `response`, both `std::span<const uint8_t>` (PDUs: function code plus data, no address/CRC). The
+  spans are only valid inside the handler - copy bytes out if they must outlive it.
 - **on_error** (*Optional*, [Automation](/automations/)): Fires on a Modbus exception response. Lambda variables:
-  `address` (`uint8_t`, the request's device address), `request` (`std::span<const uint8_t>`, the request PDU this
-  action sent - same as in `on_response`) and `exception_code` (`modbus::ExceptionCode`, an enum - cast to
-  `int`/`uint8_t` to print). There is no `response` span, as an exception carries no data payload.
+  `address` (`uint8_t`, the request's device address),
+  `request` (`std::span<const uint8_t>`, the request PDU this action sent - same as in `on_response`) and
+  `exception_code` (`modbus::ExceptionCode`, an enum - cast to `int`/`uint8_t` to print). There is no `response`
+  span, as an exception carries no data payload.
 - **on_no_response** (*Optional*): Fires when the device does not answer within the hub's `send_wait_time`.
-  `address` (`uint8_t`, the request's device address) and `request` (`std::span<const uint8_t>`, the PDU that got no
-  reply) are available in every form. Three ways to write it:
+  `address` (`uint8_t`, the request's device address) and
+  `request` (`std::span<const uint8_t>`, the PDU that got no reply) are available in every form. Three ways to write
+  it:
 
   - a returning lambda (`on_no_response: !lambda "return <bool>;"`) - its boolean is returned to the hub: `true`
     re-queues (retries) the frame, `false` gives up. The lambda can also log or bump a counter inline;
@@ -195,21 +198,21 @@ handlers, never another action's.
   variable it carries depends on the action - see below.
 - **on_custom_response** (*Optional*, [Automation](/automations/)): Fires instead of `on_response` when the reply
   doesn't parse as a standard-conforming transaction for this function code. Lambda variables: `request`, `response`
-  (raw `std::span<const uint8_t>` PDUs), so a non-conforming device is still handleable. If left unconfigured, no
-  handler runs for that transmission - the first non-conforming reply for this action logs a warning, and any after
-  that log at verbose level instead.
+  (raw `std::span<const uint8_t>` PDUs), so a
+  non-conforming device is still handleable. If left unconfigured, no handler runs for that transmission - the first
+  non-conforming reply for this action logs a warning, and any after that log at verbose level instead.
 - **on_error** (*Optional*, [Automation](/automations/)): Fires on a Modbus exception response. Lambda variables:
-  `address` (`uint8_t`, the request's device address), `request` (`std::span<const uint8_t>`) and `exception_code`
-  (`modbus::ExceptionCode`, an enum - cast to `int`/`uint8_t` to print).
+  `address` (`uint8_t`, the request's device address),
+  `request` (`std::span<const uint8_t>`) and `exception_code` (`modbus::ExceptionCode`, an enum - cast to
+  `int`/`uint8_t` to print).
 - **on_no_response** (*Optional*): Fires when the device does not answer within the hub's `send_wait_time`. Same
   three forms as `modbus_client.send`'s `on_no_response` above: a returning lambda, a `then:` automation, or a
-  `then:` automation with a nested `retry:` returning lambda. Lambda variables in every form: `address` (`uint8_t`,
-  the request's device address) and `request` (`std::span<const uint8_t>`, the PDU that got no reply).
+  `then:` automation with a nested `retry:` returning lambda.
 - **on_not_sent** (*Optional*, [Automation](/automations/)): Fires when the frame never reached the wire - a
   duplicate write already pending, a full send queue, an invalid request, or a queued frame cancelled by another
   device or automation clearing the queue for the same address. See [Behavior](#behavior). Lambda variables:
-  `address` (`uint8_t`, the request's device address) and `request` (`std::span<const uint8_t>`, the PDU that was not
-  sent).
+  `address` (`uint8_t`, the request's device address) and
+  `request` (`std::span<const uint8_t>`, the PDU that was not sent).
 
 ### `modbus_client.read_holding_registers` Action
 
