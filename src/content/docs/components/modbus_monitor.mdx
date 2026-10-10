@@ -56,6 +56,39 @@ queued its answer. `on_response` runs for the reply of another device to a reque
 `on_request` runs each time the hub sends a request, broadcasts and retries included. A request that was queued but
 never sent does not run it. `on_response` runs for each response that matches the request the hub is waiting for.
 
+## Listen-Only Node
+
+A hub with the `server` role and no [Modbus Server](/components/modbus_server/) devices never transmits, so it
+can watch a bus where another device is the client. Leave out `tx_pin` and `flow_control_pin` and connect only
+the receive side of the transceiver; on a MAX485, tie `DE` and `RE` to `GND`. This example reads register 206
+from the replies of device 15 to function code `0x03`:
+
+```yaml
+uart:
+  rx_pin: GPIOXX
+  baud_rate: 9600
+
+modbus:
+  role: server
+
+modbus_monitor:
+  - on_response:
+      - lambda: |-
+          if (address != 15 || request[0] != 0x03 || response[0] != 0x03) return;
+          // The request holds the first register, the response only the values.
+          const uint16_t start = modbus::helpers::get_data<uint16_t>(request.data(), 1);
+          const auto values = modbus::helpers::server_pdu_payload(response);
+          if (start > 206) return;
+          const size_t offset = (206 - start) * 2;
+          if (offset + 2 > values.size()) return;
+          id(battery_soc).publish_state(modbus::helpers::get_data<uint16_t>(values.data(), offset));
+
+sensor:
+  - platform: template
+    id: battery_soc
+    name: "Battery SOC"
+```
+
 ## See Also
 
 - [Modbus Component](/components/modbus/)
