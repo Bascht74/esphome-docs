@@ -32,9 +32,10 @@ The example assumes a TCP UART with the id `remote_link`. Use `remote_port` as `
 
 The settings are sent on each connect. On ESP32 and ESP8266, a lambda that changes them and then calls
 `load_settings()` sends them again; see [Changing at runtime](/components/uart/#changing-at-runtime). After a connect,
-written bytes wait for the settings, at most 3 seconds. If the server answers with another value, a warning is
-logged. The flow control of the server's port is left as the server has it; configure it without XON/XOFF, or the
-server consumes `0x11` and `0x13`.
+written bytes wait for the settings, at most 3 seconds. If the server refuses the COM-PORT option, a warning is logged
+and the bytes pass without line settings. If the server answers with another value, a warning is logged. The flow
+control of the server's port is left as the server has it; configure it without XON/XOFF, or the server consumes `0x11`
+and `0x13`.
 
 > [!NOTE]
 > While the connection is down, or while its 256-byte send buffer is full, written bytes are dropped and a warning is
