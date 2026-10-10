@@ -61,8 +61,9 @@ The example assumes a TCP UART with `role: server` and the id `inbound`, and a U
   in use.
 - On the other platforms the line stays as configured, and each request is answered with the configured value.
   A client that asks for another value gets an error, so open the port with the configured settings.
-- A change waits until the bytes written before it have left. At a low baud rate with much data queued, this can take
-  longer than pySerial waits for the answer, 3 seconds; raise it with `?timeout=` in the URL.
+- For a client that waits for each answer, as pySerial does, a change waits until the bytes written before it have
+  left. At a low baud rate with much data queued, this can take longer than pySerial waits for the answer,
+  3 seconds; raise it with `?timeout=` in the URL.
 - When the client disconnects, the bytes it sent still go out; then the line returns to the configured settings.
 - Flow control, BREAK, DTR and RTS are answered with "off": the UART has none of them. No line or modem state is
   reported, so pySerial's `cts`, `dsr`, `ri` and `cd` raise an error.
