@@ -5,9 +5,9 @@ description: "Instructions for sending KeeLoq rolling codes from a key and a sto
 
 The `keeloq` component acts as a KeeLoq remote control: it computes the encrypted hopping code from a
 manufacturer key, a serial number and a counter, and sends it through a
-[Remote Transmitter](/components/remote_transmitter/). The supported type is `jarolift`, for Jarolift TDEF shutter
-motors. With a [Remote Receiver](/components/remote_receiver/) it also decrypts received frames, reports presses
-and can take over a hand remote. For codes that are already encrypted, use
+[Remote Transmitter](/components/remote_transmitter/). It supports Jarolift TDEF shutter motors and remotes with
+the Microchip HCS301 frame. With a [Remote Receiver](/components/remote_receiver/) it also decrypts received
+frames, reports presses and can take over a hand remote. For codes that are already encrypted, use
 [`remote_transmitter.transmit_keeloq`](/components/remote_transmitter/#remote_transmitter-transmit_keeloq) instead.
 
 > [!WARNING]
@@ -28,15 +28,23 @@ keeloq:
 ## Configuration Variables
 
 - **id** (*Optional*, [ID](/guides/configuration-types/#id)): The ID of this remote, used by the actions.
-- **type** (**Required**, enum): How the device key, the hopping code and the pairing sequence are built. One of
-  `jarolift`.
+- **type** (**Required**, enum): How the device key, the hopping code and the pairing sequence are built:
+  - `jarolift`: Jarolift TDEF shutter motors, a 72-bit frame with channel mask; normal learning.
+  - `simple`: HCS301 frame; the manufacturer key is the device key.
+  - `normal`: HCS301 frame; Microchip normal learning.
+  - `secure`: HCS301 frame; Microchip secure learning with **seed**. `bft` is accepted as an alias.
+  - `auto`: only on a remote without **serial**. The take-over tries `jarolift`, `normal`, `simple` and, with
+    **seed**, `secure`, and stores the first type that decrypts. A rare wrong guess among the HCS301 types shows as
+    a remote the receiver ignores; then set the type.
+- **seed** (*Optional*, int): The 32-bit seed. Required for `secure`, allowed for `auto`, rejected for the other
+  types.
 - **manufacturer_key** (**Required**, int): The 64-bit manufacturer key. A key given as two 32-bit halves is written
   MSB first: `0x<MSB><LSB>`.
 - **serial** (*Optional*, int): The 28-bit serial number this remote sends. The motor learns it with
   [`keeloq.learn`](#keeloq-learn-action). Without it, the remote takes the serial over from a hand remote, see
   [Taking Over a Hand Remote](#taking-over-a-hand-remote); then **receiver_id** is required.
 - **channels** (*Optional*, list or int): The channels, as for `keeloq.send`, for actions that set none. Without
-  it, a taken-over remote uses the channels of the hand remote.
+  it, a taken-over remote uses the channels of the hand remote. Only `jarolift` frames have a channel mask.
 - **receiver_id** (*Optional*, [ID](/guides/configuration-types/#id)): The
   [Remote Receiver](/components/remote_receiver/) to listen to.
 - **on_frame** (*Optional*, [Automation](/automations/)): Runs for each received frame that decrypts with the
@@ -140,15 +148,16 @@ on_...:
 | `learn` | `0xA`, up and down together | 2× |
 | `shade` | `0x4`, stop held: moves to the shade position | 20× |
 
-A button code without a name is sent 2×. `learn` sends only the code `0xA`; the pairing sequence is
-[`keeloq.learn`](#keeloq-learn-action).
+These names are for `jarolift`; the HCS301 types take the button code only. A button code without a name is
+sent 2×. `learn` sends only the code `0xA`; the pairing sequence is [`keeloq.learn`](#keeloq-learn-action).
 
 ### `keeloq.learn` Action
 
-This [action](/automations/actions#all-actions) pairs the remote: it sends up and down together, one second later
-stop, each twice. Put the motor into learn mode as its manual describes, then run the action within 5 seconds. The
-motor vibrates when it has learned the serial; a hand remote paired before keeps working. A remote without
-**serial** does not pair: it logs a warning and sends nothing.
+This [action](/automations/actions#all-actions) pairs the remote. For `jarolift` it sends up and down together,
+one second later stop, each twice. For `simple` and `normal` it sends button `0x2` twice, one second apart; for
+`secure` the second frame is the seed. Put the receiver into learn mode as its manual describes, then run the
+action within 5 seconds. A Jarolift motor vibrates when it has learned the serial; a hand remote paired before keeps
+working. A remote without **serial** does not pair: it logs a warning and sends nothing.
 
 ```yaml
 on_...:
