@@ -188,6 +188,29 @@ on_...:
 - **id** (**Required**, [ID](/guides/configuration-types/#id)): The ID of the remote.
 - **counter** (**Required**, int, [templatable](/automations/templates)): The counter of the next frame.
 
+## Buttons
+
+The `keeloq` button platform offers `keeloq.learn` and `keeloq.take_over` as buttons. At least one of them is
+required; both for the same remote are rejected.
+
+```yaml
+button:
+  - platform: keeloq
+    keeloq_id: shutter_remote
+    learn:
+      name: Pair shutter 1
+      channels: [1]
+```
+
+- **keeloq_id** (*Optional*, [ID](/guides/configuration-types/#id)): The ID of the remote.
+- **learn** (*Optional*): A button that runs `keeloq.learn`. Needs a remote with **serial**. All options from
+  [Button](/components/button/#config-button), plus:
+  - **channels** (*Optional*, list or int): The channels to pair. Defaults as for `keeloq.send`.
+  - **legacy** (*Optional*, boolean): As for `keeloq.learn`. Defaults to `false`.
+  - **transmitter_id** (*Optional*, [ID](/guides/configuration-types/#id)): The remote transmitter to send with.
+- **take_over** (*Optional*): A button that runs `keeloq.take_over`. All options from
+  [Button](/components/button/#config-button).
+
 ## See Also
 
 - [Remote Transmitter](/components/remote_transmitter/)
