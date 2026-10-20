@@ -33,11 +33,7 @@ keeloq:
   - `simple`: HCS301 frame; the manufacturer key is the device key.
   - `normal`: HCS301 frame; Microchip normal learning.
   - `secure`: HCS301 frame; Microchip secure learning with **seed**. `bft` is accepted as an alias.
-  - `auto`: only on a remote without **serial**. The take-over tries `jarolift`, `normal`, `simple` and, with
-    **seed**, `secure`, and stores the first type that decrypts. A rare wrong guess among the HCS301 types shows as
-    a remote the receiver ignores; then set the type.
-- **seed** (*Optional*, int): The 32-bit seed. Required for `secure`, allowed for `auto`, rejected for the other
-  types.
+- **seed** (*Optional*, int): The 32-bit seed. Required for `secure`, rejected for the other types.
 - **manufacturer_key** (**Required**, int): The 64-bit manufacturer key. A key given as two 32-bit halves is written
   MSB first: `0x<MSB><LSB>`.
 - **serial** (*Optional*, int): The 28-bit serial number this remote sends. The motor learns it with
