@@ -207,7 +207,7 @@ handlers, never another action's.
   `int`/`uint8_t` to print).
 - **on_no_response** (*Optional*): Fires when the device does not answer within the hub's `send_wait_time`. Same
   three forms as `modbus_client.send`'s `on_no_response` above: a returning lambda, a `then:` automation, or a
-  `then:` automation with a nested `retry:` returning lambda.
+  `then:` automation with a nested `retry:` returning lambda. Every form gets `address` and `request`.
 - **on_not_sent** (*Optional*, [Automation](/automations/)): Fires when the frame never reached the wire - a
   duplicate write already pending, a full send queue, an invalid request, or a queued frame cancelled by another
   device or automation clearing the queue for the same address. See [Behavior](#behavior). Lambda variables:
