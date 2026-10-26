@@ -112,11 +112,16 @@ modbus_monitor:
                         pdu: !lambda return {static_cast<uint8_t>(request[0] | 0x80), 0x0B};
 ```
 
-Answer `on_response`, `on_error` and `on_no_response`: until a response is sent, the hub waits for it and can take
-the next request for the reply. Keep the client hub's `turnaround_time` plus `send_wait_time` well below the timeout
-of the device that sends the requests, so that `on_no_response` answers in time; other traffic on that hub adds to
-this. Otherwise a late reply to a read of the same device with
-the same function code and length cannot be told apart from the reply to a newer request.
+Answer `on_response`, `on_error` and `on_no_response`: until a response is sent, the hub waits for it and can take the
+next request for the reply. Keep the client hub's `turnaround_time` plus `send_wait_time` well below the timeout of the
+device that sends the requests, so that `on_no_response` answers in time; other traffic on that hub adds to this. A
+`modbus_controller` on the same hub can queue several reads ahead of a forwarded request. If the requesting device times
+out first, a late reply to a read of the same device with the same function code and length cannot be told apart from
+the reply to a newer request.
+
+A single write (function code 5 or 6) that the requesting device repeats before the reply is sent has the same bytes as
+that reply, so the hub takes it for the reply and drops the real one; set that device's write timeout above the whole
+forwarded round trip.
 
 If an `on_request` block answers with `modbus.send_response` right away, place it after the blocks that only watch
 the bus, so that they see the request before the reply.
