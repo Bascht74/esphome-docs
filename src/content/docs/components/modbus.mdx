@@ -119,9 +119,9 @@ device that sends the requests, so that `on_no_response` answers in time; other 
 out first, a late reply to a read of the same device with the same function code and length cannot be told apart from
 the reply to a newer request.
 
-A single write (function code 5 or 6) that the requesting device repeats before the reply is sent has the same bytes as
-that reply, so the hub takes it for the reply and drops the real one; set that device's write timeout above the whole
-forwarded round trip.
+A single write or mask write (function code 5, 6 or 22) that the requesting device repeats before the reply is sent has
+the same bytes as that reply, so the hub takes it for the reply and drops the real one; set that device's write timeout
+above the whole forwarded round trip.
 
 If an `on_request` block answers with `modbus.send_response` right away, place it after the blocks that only watch
 the bus, so that they see the request before the reply.
