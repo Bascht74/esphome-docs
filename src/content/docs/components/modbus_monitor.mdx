@@ -50,7 +50,7 @@ another device to a request the hub has seen. A reply that is dropped does not r
 > [!NOTE]
 > The hub tells a request from a reply by the order and shape of the frames. If a device does not answer, the next
 > request that has the shape of a reply is taken for one, whatever its address, for example a single write or mask
-> write (function codes `0x05`, `0x06`, `0x16`).
+> write (function codes `0x05`, `0x06`, `0x16`). Broadcasts are always read as requests.
 
 ### Client Hub
 
