@@ -95,6 +95,8 @@ This automation will be triggered when an event of the specified types is trigge
 In [Lambdas](/automations/templates#config-lambda) you can get the event type from the trigger with `event_type`.
 If the event has [variables](/components/event/template#variables), each one is available under its name.
 A variable the event did not set is `false` for `bool`, `0` for `int`, `NAN` for `float` and an empty text for `string`.
+If an `on_event` automation triggers its own event again, the `on_event` automations that come after it see the
+values of the new event.
 
 ```yaml
 event:
